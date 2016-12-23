@@ -1,3 +1,10 @@
+bower_components/
+docs/docker/
+lib/
+node_modules/
+.svn
+npm-debug.log
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -27,9 +34,6 @@ $RECYCLE.BIN/
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# Thumbnails
-._*
 
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
