@@ -1,7 +1,6 @@
-ludorum-wargame.js
-==================
+# ludorum-wargame.js
 
-TODO
+Implementation of miniature wargames for the Ludorum framework.
 
 ## License
 
