@@ -7,8 +7,6 @@ module.exports = function (grunt) {
 
 	require('creatartis-grunt').config(grunt, {
 		sourceNames: ['__prologue__',
-				'astar',
-				'state',
 				'armies',
 				'wargame',
 				'test',
