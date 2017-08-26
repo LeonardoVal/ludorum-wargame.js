@@ -1,456 +1,253 @@
-/**
- *
- * var LW = ludorum_wargame,
-   game1 = LW.test.example1(),
-   moves1 = game1.moves().Red,
-   game2 = game1.next({ Red: moves1[0] }),
-	asd  = new LW.TerrainDiscrete(),grid= asd.trueClearanceMetric();RENDERER.renderGrid(grid);
+/** # Terrain
 
-asd  = new LW.TerrainDiscrete(); asd.areaOfSight({x:20,y:10},12)
+*/
 
- */
+function distance(p1, p2) {
+	var d0 = p1[0] - p2[0],
+		d1 = p1[1] - p2[1];
+	return Math.sqrt(d0 * d0 + d1 * d1);
+}
 
-var TerrainDiscrete = exports.TerrainDiscrete = declare({
-    /*
-	SURROUNDINGS: Iterable.product([-1,0,+1], [-1,0,+1]).filterApply(function (dx, dy) {
-			return dx || dy;
-		}, function (dx, dy) {
-			return { dx: dx, dy: dy, cost: Math.sqrt(dx*dx + dy*dy) };
-		}).toArray(),
+var Terrain = exports.Terrain = declare({
+	SURROUNDINGS: [
+		{dx:-1, dy:-1, cost: Math.SQRT2},
+		{dx:-1, dy: 0, cost: 1},
+		{dx:-1, dy: 1, cost: Math.SQRT2},
+		{dx: 0, dy:-1, cost: 1},
+		{dx: 0, dy: 1, cost: 1},
+		{dx: 1, dy:-1, cost: Math.SQRT2},
+		{dx: 1, dy: 0, cost: 1},
+		{dx: 1, dy: 1, cost: Math.SQRT2}
+	],
+
+	/** The map of the terrain is made of tiles taken from a tileSet. This is the default tile set.
 	*/
+	tileSet: [
+		{ passable: true, visible: true },
+		{ passable: false, visible: false }
+	],
 
-    SURROUNDINGS: [
-        {dx:-1,dy:-1,cost:1.4142135623730951},
-        {dx:-1,dy:0,cost:1},
-        {dx:-1,dy:1,cost:1.4142135623730951},
-        {dx:0,dy:-1,cost:1},
-        {dx:0,dy:1,cost:1},
-        {dx:1,dy:-1,cost:1.4142135623730951},
-        {dx:1,dy:0,cost:1},
-        {dx:1,dy:1,cost:1.4142135623730951}],
-    /**
-    Terrain is a discrete representation of the map with out units. in the form [x][y]
-     */
- terrainAux:function terrainAux(){
-    var t=this.t;
-    return [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,t,t,t,t,t,t,t,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [t,t,t,t,t,t,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [t,t,t,t,t,t,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [t,0,0,0,0,0,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [t,0,0,0,0,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [t,0,0,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [t,0,0,t,t,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,t,t,t,t,t,t,t,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [t,t,t,t,t,t,0,0,0,0,t,t,t,t,t,t,t,t,t,t,t,0,0,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
-    },
+	map: [
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000001000000001111111100000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111110011111111111001111111111111111111111100",
+		"111111000011111111111001111111111111111111111100",
+		"100000000011111111111001111111111111111111111100",
+		"100000000111111111111001111111111111111111111100",
+		"100111001111111111111001111111111111111111111100",
+		"100110000111111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000001111111100000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000001111111111111111111111100000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000"
+	].map(function (line) {
+		return new Uint8Array(line.split(''));
+	}),
 
-	constructor: function TerrainDiscrete() {
-        this.t="t";
-        this.noview="v";
-        this.noPass="-";
-        this.graphed=false;
-        this.terrain= this.terrainAux();
-        this.trueClarenceMaps={};
-		this.WorldWidth  =48 ; //x
-		this.WorldHeight =48 ; //y
-		this.squareSize=1  ;
-		this.matrix=[];
-        this.matrixNxN=[];
-		this.wi = Math.floor(this.WorldWidth/(this.squareSize));//x
-        this.he = Math.floor(this.WorldHeight/(this.squareSize));//y
-        this.CacheSight={};
-        this.CachePreCalc={};
-        this.CacheRechablePositions={};
-		this.explore=[
-                    {rePos:[ 0 , 1],cost: 1 },
-					{rePos:[ 0 ,-1],cost: 1 },
-					{rePos:[ 1 , 0],cost: 1 },
-					{rePos:[-1 , 0],cost: 1 },
-					{rePos:[ 1 , 1],cost: Math.SQRT2 },
-					{rePos:[-1 , 1],cost: Math.SQRT2 },
-					{rePos:[-1 ,-1],cost: Math.SQRT2 },
-					{rePos:[ 1 ,-1],cost: Math.SQRT2 },
-                    ];
+	__unitsByPosition__: {},
 
+	constructor: function Terrain(args) {
+		//TODO initialization
+		this.width = this.map.length;
+		this.height = this.map[0].length;
 	},
-    resetTerrain: function resetTerrain(wargame){
-        this.terrain= this.terrainAux();
-        this.loadUnitsBut(wargame,this.terrain);
-        this.trueClarenceMaps={};
-        this.CacheSight={};
-        this.CacheRechablePositions={};
-        this.graphed=false;
-    },
-    loadUnitsBut: function loadUnitsBut(wargame,terrain,externalUnit){
-		var armies = wargame.armies;
+
+	resetTerrain: function resetTerrain(wargame){
+		this.__unitsByPosition__ = this.unitsByPosition(wargame);
+	},
+
+	unitsByPosition: function unitsByPosition(wargame){
+		var armies = wargame.armies,
+			result = {};
 		for (var team in armies) {
 			armies[team].units.forEach(function (unit) {
-
-				if (!unit.isDead() && !(externalUnit && externalUnit.id===unit.id)){
-                    terrain[unit.position[0]][unit.position[1]]=unit;
+				if (!unit.isDead()){
+		          	result[unit.position] = unit;
 				}
 			});
 		}
-    },
-
-	canSee: function canSee(fromUnit, toUnit) {
-		return this.lineOfSight(fromUnit.position, toUnit.position);
+		return result;
 	},
-    inBounds: function inBounds(spot){
-        return !( spot.x < 0 || spot.x >= this.wi || spot.y < 0 || spot.y >= this.he);
-    },
-    bresenham: function bresenham(point1, point2,maxRuns){
-        var targetInPath = 0,
-            spotsMark = [],
-            dx = Math.abs(point2.x-point1.x),
-            dy = Math.abs(point2.y-point1.y),
-            sx = (point1.x < point2.x) ? 1 : -1,
-            sy = (point1.y < point2.y) ? 1 : -1,
-            curLoc = {'x':point1.x,'y':point1.y},
-            err = dx - dy,e2;
-        maxRuns = maxRuns ||1000;
-        while(maxRuns--){
-            spotsMark.push({'x':curLoc.x,'y':curLoc.y});
-            if( curLoc.x == point2.x && curLoc.y == point2.y ) break;
-            e2 = err << 1;
-            if(e2 >-dy) { err -= dy; curLoc.x += sx; }
-            if(e2 < dx) { err += dx; curLoc.y += sy; }
-        }
-    	return spotsMark;
-    },
-    getDistance:function getDistance(point1,point2) {
-        point1=point1.x!==undefined ? point1 : {x:point1[0],y:point1[1]};
-        point2=point2.x!==undefined ? point2 : {x:point2[0],y:point2[1]};
-        return Math.sqrt(((point1.x - point2.x) * (point1.x - point2.x))+
-                         ((point1.y - point2.y) * (point1.y - point2.y))
-                        );
-    },
-	lineOfSight: function lineOfSight(point1, point2) {
-        var bres= this.bresenham(point1,point2);
-    	return this.getDistance(point1,point2)===this.getDistance(point1,bres[bres.length-1]);
+
+	tileAt: function tileAt(position) {
+		var tile = this.map[position[0]] && this.map[position[0]][position[1]];
+		return this.tileSet[tile];
 	},
-    calculate: function calculate(radius) {
-        if (this.CachePreCalc[radius]!==undefined){
-            return this.CachePreCalc[radius];
-        }
 
-        var origin = { x: 0, y: 0 },
-            preCalc = [],
-            minCoord = origin.x - radius,
-	        maxCoord = origin.y + radius,
-            path,
-            i,x,y;
-        for(x = minCoord; x <= maxCoord; x++ ) {
-            path = this.bresenham( origin, { x: x, y: minCoord } );
-            for(i = 0; i < path.length; i++){
-                path[i].distance = this.getDistance(origin,{x: path[i].x, y: path[i].y});
-            }
-            preCalc.push(path);
-
-            path = this.bresenham( origin, { x: x, y: maxCoord } );
-            for(i = 0; i < path.length; i++){
-                path[i].distance = this.getDistance(origin,{x: path[i].x, y: path[i].y});
-            }
-            preCalc.push(path);
-        }
-
-        for(y = minCoord + 1; y < maxCoord; y++ ) { //we already checked the top-most and bottom-most
-            path = this.bresenham( origin, { x: minCoord, y: y } );
-            for(  i = 0; i < path.length; i++){
-                path[i].distance = this.getDistance(origin,{x: path[i].x, y: path[i].y});
-            }
-            preCalc.push(path);
-
-            path = this.bresenham( origin, { x: maxCoord, y: y } );
-            for(  i = 0; i < path.length; i++){
-                path[i].distance = this.getDistance(origin,{x: path[i].x, y: path[i].y});
-            }
-            preCalc.push(path);
-        }
-        this.CachePreCalc[radius]=preCalc;
-        return preCalc;
-    },
-    areaOfSight :function areaOfSight(character, sightRadius,wargame ){
-        var characterSpot=character.position;
-
-        if (this.CacheSight[characterSpot+"-"+sightRadius]!==undefined){
-            return this.CacheSight[characterSpot+"-"+sightRadius];
-        }
-        var radius = Math.max(this.wi,this.he) >> 1,
-            map = this.terrainAux(),
-            isVisible,
-            area={},
-            x,y,i,
-            preCalc=this.calculate(24);
-        this.loadUnitsBut(wargame,map);
-
-
-     	map[characterSpot[0]][characterSpot[1]] ={'visible': false, 'tile':'@'};
-        for(  i = 0; i <  preCalc.length; i++ ) {
-            isVisible = true;
-            for( var j = 0; j <  preCalc[i].length; j++ ) {
-                var curTile =  preCalc[i][j];
-                var mapSpot = { x: characterSpot[0] + curTile.x, y: characterSpot[1] + curTile.y };
-                if( this.inBounds(mapSpot,map)) { //is a valid spot
-                    if (map[mapSpot.x][mapSpot.y].visible === undefined ){
-                       map[mapSpot.x][mapSpot.y]= {'visible': false, 'tile': map[mapSpot.x][mapSpot.y] };
-                    }
-                    if( curTile.distance > sightRadius ) {
-                        isVisible = false;
-                    }
-                    if( isVisible ) {
-
-                        area[[mapSpot.x,mapSpot.y]]=true;
-                        map[mapSpot.x][mapSpot.y].visible = isVisible;
-                    }
-
-                    if( map[mapSpot.x][mapSpot.y].tile == 't' ||
-                        (map[mapSpot.x][mapSpot.y].tile.id!==undefined && map[mapSpot.x][mapSpot.y].tile.id!==character.id)   ) {
-                        isVisible = false;
-                    }
-                } else { //not inside the map... don't worry about this location
-                    j =  preCalc[i].length;
-                }
-            }
-        }
-
-       // this.logMap(map);
-        this.CacheSight[characterSpot+"-"+sightRadius]=[area];
-        RENDERER.renderGridSight(area);
-        return [area];
-        },
-
-
-    canShoot:function canShoot(shooterUnit, targetUnit, range,wargame){
-        var areaOfSight,
-            ret=Infinity,
-            distance=this.getDistance(shooterUnit.position,targetUnit.position);
-        if (shooterUnit.army !== targetUnit.army && distance<= shooterUnit.maxRange()){
-            areaOfSight=this.areaOfSight(shooterUnit, range ,wargame)[0];
-            if (areaOfSight[targetUnit.position]){
-                ret= distance;
-            }
-        }
-        return ret;
-    },
-
-
-	reachablePositionsBad: function reachablePositionsBad(unit, maxTravelDistance,wargame,args) {
-		maxTravelDistance = maxTravelDistance || 12;
-		var terrain = this,
-            visited = {},
-            unitPosition=unit.position,
-			toExplore = [unitPosition],
-			width = this.WorldWidth,
-            height = this.WorldHeight,
-            unitSize=args.unitSize || 1,
-            calctrueClearanceMetric= unitSize!==1 ? this.trueClearanceMetric(unit,wargame):false,
-			step = args.Step || 1, //FIXME
-            pos, pos2,i,surr,surrStep,graph,
-            upperLeft = [Math.max(unit.position[0] -maxTravelDistance, 0)    ,Math.max(unit.position[1] -maxTravelDistance, 0)],
-            lowerRight= [Math.min(unit.position[0] +maxTravelDistance,width),Math.min(unit.position[1] +maxTravelDistance, height)];
-
-
-
-            if (this.CacheRechablePositions[unit.position+"-"+maxTravelDistance]!== undefined){
-                return this.CacheRechablePositions[unit.position+"-"+maxTravelDistance];
-            }
-
-            if (this.graphed===false){
-                graph=new ludorum_wargame.Graph(terrain.terrain);
-            }else{
-                graph=this.graphed;
-
-            }
-
-
-        var x,y,end,result,
-    	    start = graph.grid[unit.position[0]][unit.position[1]];
-
-        for(x = upperLeft[0]; x < lowerRight[0];x ++ ) {
-            for(y = upperLeft[1]; y < lowerRight[1]; y++ ) {
-
-                if (typeof visited[[x,y]] === 'undefined'){
-                    if (terrain.terrain[x][y]===0  ){
-                        end= graph.grid[x][y];
-                    result = graph.astar.search(graph, start, end);
-                    if(result.length!==0){
-                        for(i = 0;i < result.length;i ++ ) {
-                          visited[[result[i].x,result[i].y]]=i;
-                        }
-                    }
-                }
-               }
-            }
-        }
-
-			//unitPosition = new Float32Array(unitPosition);
-
-        this.CacheRechablePositions[unit.position+"-"+maxTravelDistance]=visited;
-		return visited;
+	isPassable: function isPassable(position, checkUnits) {
+		var tile = this.tileAt(position);
+		return !!(tile && tile.passable &&
+			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
 	},
+
+	isVisible: function isVisible(position, checkUnits) {
+		var tile = this.tileAt(position);
+		return !!(tile && tile.visible &&
+			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
+	},
+
+	// ## Movement ################################################################################
 
 	/** Returns all reachable positions of the given unit.
 	*/
-	//TODO Take the position and not the unit.
-	//TODO Take step as argument.
-	reachablePositions: function reachablePositions(unit, maxTravelDistance,wargame,args) {
-		maxTravelDistance = maxTravelDistance || 12;
-		var terrain = this,
-            visited = {},
-            unitPosition=unit.position,
-			toExplore = [unitPosition],
-			width = this.WorldWidth,
-            height = this.WorldHeight,
-            unitSize=args.unitSize || 1,
-            calctrueClearanceMetric= unitSize!==1 ? this.trueClearanceMetric(unit,wargame):false,
-			step = args.Step ||1, //FIXME
-            pos, pos2,i,surr,surrStep;
-		visited[unitPosition] = 0;
-        if (this.CacheRechablePositions[unit.position+"-"+maxTravelDistance]!== undefined){
-            return this.CacheRechablePositions[unit.position+"-"+maxTravelDistance];
-        }
+	reachablePositions: function reachablePositions(unit, range) {
+		range = range || 12;
+		var visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[unit.position] = 0;
 
-		while (toExplore.length > 0) {
-			pos = toExplore.shift();
-
-            for (i = 0; i < this.SURROUNDINGS.length; i++) {
-                surr=this.SURROUNDINGS[i];
-                surrStep= visited[pos] + surr.cost * step;
-                pos2 = [pos[0] + surr.dx * step, pos[1] + surr.dy * step];
-				if (
-                    surrStep < maxTravelDistance &&
-                    pos2[0] >= 0 && pos2[1] >= 0 &&
-                    pos2[0] < width && pos[1] < height &&
-                   (typeof   visited[pos2] === 'undefined')
-                  ) {
-
-                    if  (calctrueClearanceMetric!==false && calctrueClearanceMetric[pos2[0]][pos2[1]]>=unitSize){
-                        visited[pos2] =surrStep;
-                        toExplore.push(pos2);
-                    }else if (terrain.terrain[pos2[0]][pos2[1]]===0){
-                        visited[pos2] =surrStep;
-                        toExplore.push(pos2);
-                    }
-
-
-				}
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+				pending.push(pos2);
 			}
 		}
-        this.CacheRechablePositions[unit.position+"-"+maxTravelDistance]=visited;
 		return visited;
 	},
-	terrainGrid: function terrainGrid(){
-		return this.terrain;
-    },
 
+	// ## Visibility ##############################################################################
 
-    trueClearanceMetric: function trueClearanceMetric(currentUnit,wargame){
-        if (this.trueClarenceMaps[currentUnit.id]!==undefined){
-            return this.trueClarenceMaps[currentUnit.id];
-        }
+	'dual bresenham': function bresenham(point1, point2, maxRange){
+		maxRange = maxRange || Infinity;
+		var result = [],
+			dx = Math.abs(point2[0] - point1[0]),
+			dy = Math.abs(point2[1] - point1[1]),
+			sx = (point1[0] < point2[0]) ? 1 : -1,
+			sy = (point1[1] < point2[1]) ? 1 : -1,
+			curLoc = point1.slice(),
+			err = dx - dy,
+			e2;
+		while (maxRange--){
+			result.push(curLoc.slice());
+			if (curLoc[0] === point2[0] && curLoc[1] === point2[1]) break;
+			e2 = err * 2;
+			if (e2 > -dy) {
+				err -= dy;
+				curLoc[0] += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				curLoc[1] += sy;
+			}
+		}
+		return result;
+	},
 
-        var grid = this.terrainAux(),
-            x=0,
-            y=0;
-        this.loadUnitsBut(wargame,grid,currentUnit);
-        for (y = 0; y < grid[0].length ; y++) {
-            for (x = 0; x < grid.length; x++) {
+	canShoot:function canShoot(shooterUnit, targetUnit){
+		if (shooterUnit.army !== targetUnit.army) {
+			return Infinity;
+		}
+		var distance = distance(shooterUnit.position, targetUnit.position);
+		if (distance > shooterUnit.maxRange()) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnit.position, targetUnit.position, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos] !== targetUnit) {
+					return Infinity;
+				}
+			}
+			return distance;
+		}
+	},
 
-                if (grid[x][y]===0){
-                    this.trueCMPosition(x,y,grid);
-                }
-            }
-        }
-        this.trueClarenceMaps[currentUnit.id]=grid;
-        return grid;
-    },
-    trueCMPosition: function trueCMPosition(posx,posy,grid){
-        var size=1,
-            i,
-            gridX=grid.length,
-            gridY=grid[0].length;
+	areaOfSight: function areaOfSight(unit, radius) {
+		radius = radius || Infinity;
+		var pos = unit.position,
+			terrain = this,
+			area = {};
+		iterable(this.BRESENHAM_CACHE).forEachApply(function (_, path) {
+			var pos2;
+			for (var i = 1; i < path.length && i <= radius; i++) {
+				pos2 = path[i];
+				pos2 = [pos[0] + pos2[0], pos[1] + pos2[1]];
+				if (!terrain.isVisible(pos2)) break;
+				area[pos2] = i;
+				if (terrain.__unitsByPosition__[pos2]) break;
+			}
+		});
+		return area;
+	},
 
-            stop:for (size=1; size < gridX;size++) {
-                for (i=0; i != size;i++) {
-                    if (size+posx>=gridX ||size+posy>=gridY || i+posy>=gridY || i+posx>=gridX){
-                        break stop;
-                    }else if (grid[size+posx][i+posy]!==0|| grid[i+posx][size+posy]!==0 || grid[size+posx][size+posy]!==0 ) {
-
-                        break stop;
-                    }
-                }
-            }
-        grid[posx][posy]=size;
-    },
-    logMap:function logMap(losMap){
-
-        var output = '',
-            map=Sermat.clone(losMap),
-            x,y;
-
-        for(y = 0; y < map[0].length; y++ ) {
-            for(x = 0; x < map.length; x++ ) {
-                if (map[x][y].visible === undefined ){
-                       map[x][y]= {'visible': false, 'tile': map[x][y] };
-                }
-                output += ( map[x][y].visible ? map[x][y].tile : '&nbsp;');
-            }
-            output += "<br>";
-        }
-        console.log(output);
-
-
-    },
-
-
+	// ## Utilities ###############################################################################
 
 	'static __SERMAT__': {
-		serializer: function serialize_TerrainDiscrete(obj) {
-			return [ ];
+		serializer: function serialize_Terrain(obj) {
+			return [];
 		}
 	}
 }); // declare Terrain
+
+Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius) {
+	var pointCache = {},
+		result = { radius: radius };
+
+	function cachePath(path) {
+		return path.map(function (point) {
+			return pointCache[point] || (pointCache[point] = point);
+		});
+	}
+
+	for (var i = -radius; i <= radius; i++) {
+		result[[i, -radius]] = Terrain.bresenham([0, 0], [i, -radius]);
+		result[[i, +radius]] = Terrain.bresenham([0, 0], [i, +radius]);
+		if (i !== -radius && i !== radius) {
+			result[[-radius, i]] = Terrain.bresenham([0, 0], [-radius, i]);
+			result[[+radius, i]] = Terrain.bresenham([0, 0], [+radius, i]);
+		}
+	}
+	return result;
+})(50);
 
 //var inf= new LW.InfluenceMap(game2,"Red")
 

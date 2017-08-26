@@ -2,7 +2,7 @@ exports.test = {
 	/** Simple test game. 01
   */
     example0: function example0() {
-      var terrain = new TerrainDiscrete(),
+      var terrain = new Terrain(),
         ARMY = GrimFuture.BattleBrothers,
         game = new Wargame({
           terrain: terrain,
@@ -25,10 +25,10 @@ exports.test = {
 
     example1: function example1() {
 	/*	var terrain = new Terrain([
-	
+
         { type: p2.Shape.BOX, x:20,y:20, width:4, height:50}
       ]),*/
-         var terrain = new TerrainDiscrete(),
+         var terrain = new Terrain(),
 			ARMY = GrimFuture.BattleBrothers,
 			game = new Wargame({
 				terrain: terrain,
@@ -193,7 +193,7 @@ var terrain = new Terrain([
       var terrain=  game.concreteGame.terrain;
           terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
           window.RENDERER.renderGrid(terrain.terrain);
-			
+
 		});
 		match.events.on('move', function (game, moves, match) {
 			console.log(Sermat.ser(moves));
@@ -207,7 +207,7 @@ var terrain = new Terrain([
 			console.log(m.result());
 		});
   },
-  
+
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
 				new ludorum.players.MonteCarloPlayer({ simulationCount: 5, timeCap: 2000 }),
@@ -223,7 +223,7 @@ var terrain = new Terrain([
          var terrain=  game.concreteGame.terrain;
           terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
           window.RENDERER.renderGrid(terrain.terrain);
-         
+
 
     });
     */
@@ -237,41 +237,42 @@ var terrain = new Terrain([
       var terrain=  next.concreteGame.terrain;
           terrain.loadUnitsBut(next.concreteGame,terrain.terrain);
           window.RENDERER.renderGrid(terrain.terrain);
-         
+
     });
     */
 		match.run().then(function (m) {
-      
+
       console.log(m.result());
       alert(m.result());
 		});
 	},
 
-  //le paso los players, en caso de que no se pase, ahi si son aleatorios
-  testGame: function testGame(player1,player2) { //FIXME window
+	//le paso los players, en caso de que no se pase, ahi si son aleatorios
+	testGame: function testGame(player1, player2) { //FIXME window
 		var RandomPlayer = ludorum.players.RandomPlayer,
-      players = [
-          player1 || new RandomPlayer(),
-          player2 || new RandomPlayer()
-      ];
+			players = [
+				player1 || new RandomPlayer(),
+				player2 || new RandomPlayer()
+			];
 		window.match = new ludorum.Match(this.example1(), players);
 		match.events.on('begin', function (game, match) {
-    //	window.RENDERER.render(game);
-    var terrain=  game.terrain;
-    terrain.loadUnitsBut(game,terrain.terrain);
-    window.RENDERER.renderGrid(terrain.terrain);
+			window.RENDERER.render(game);
+			//var terrain=  game.terrain;
+			//terrain.loadUnitsBut(game,terrain.terrain);
+			//window.RENDERER.renderGrid(terrain.terrain);
 		});
+
 		match.events.on('move', function (game, moves, match) {
 			console.log(Sermat.ser(moves));
+			window.RENDERER.renderSight(game);
 		});
+
 		match.events.on('next', function (game, next, match) {
 			if (next instanceof Wargame) {
-        var terrain=  next.terrain;
-        terrain.loadUnitsBut(next,terrain.terrain);
-        window.RENDERER.renderGrid(terrain.terrain);
-//				window.RENDERER.render(next);
+				window.RENDERER.render(next);
 			}
 		});
+
 		match.run().then(function (m) {
 			console.log(m.result());
 		});

@@ -171,7 +171,7 @@ var Unit = exports.Unit = declare({
 		});
 		return r;
 	},
-	
+
 	/**
 	*/
 	getShootActions: function getShootActions(game) {
@@ -190,9 +190,9 @@ var Unit = exports.Unit = declare({
 	*/
 	getMoveActions: function getMoveActions(game) {
 		var unit = this;
-		return iterable(game.terrain.reachablePositions(unit, unit.maxRange(),game, 2)).mapApply(function (k, v) {
+		return iterable(game.terrain.reachablePositions(unit)).mapApply(function (k, v) {
 			var pos = k.split(',');
-			return new MoveAction(unit.id, new Float32Array([+pos[0], +pos[1]]), v > 6);
+			return new MoveAction(unit.id, [+pos[0], +pos[1]], v > 6);
 		}).toArray();
 	},
 
