@@ -8,14 +8,12 @@ module.exports = function (grunt) {
 	require('creatartis-grunt').config(grunt, {
 		sourceNames: ['__prologue__',
 				'armies',
-				'wargame',
+				'moves', 'wargame', 'terrain',
 				'test',
-				'moves',
 				'grim-future',
 				'dynamicScripting',
 				'render',
 				'strategic',
-				'terrainDiscrete',
 			'__epilogue__'],
 		deps: [
 			{ name: 'creatartis-base', id: 'base',
