@@ -413,6 +413,263 @@ var Model = exports.Model = declare({
 }); // declare Model
 
 
+/** ## GameAction ##################################################################################
+
+`GameAction` is the base class of all game actions. The game component delegates action execution on
+these classes.
+*/
+var GameAction = exports.GameAction = declare({
+	/** Game actions have no random variables by default.
+	*/
+	aleatories: function aleatories(game) {
+		return null;
+	},
+	
+	execute: base.objects.unimplemented('GameAction', 'execute(game, haps)'),
+	
+	unitById: function unitById(game, id) {
+		id = id || this.unitId;
+		var unit = null;
+		for (var i = 0; !unit && i < game.players.length; i++) {
+			var units = game.armies[game.players[i]].units;
+			for (var j = 0; j < units.length; j++) {
+				if (units[j].id == id) {
+					unit = units[j];
+					break;
+				}
+			}
+		}
+		raiseIf(!unit, 'Unit ', id, ' was not found!');
+		return unit;
+	},
+	
+	/** The action's `worth` is the value that the action takes after being executed. Zero by default.
+	*/
+	worth: function worth() {
+		return 0;
+	}
+}); // declare GameAction
+
+/** ## ActivateAction ##############################################################################
+*/
+var ActivateAction = exports.ActivateAction = declare(GameAction, {
+	constructor: function ActivateAction(unitId) {
+		this.unitId = unitId;
+	},
+	
+	execute: function execute(game) {
+		this.unitById(game).activate(game);
+	},
+	
+	'static __SERMAT__': {
+		identifier: 'ActivateAction',
+		serializer: function serialize_ActivateAction(obj) {
+			return [obj.unitId];
+		}
+	}
+}); // declare ActivateAction
+
+/** ## EndTurn #####################################################################################
+*/
+var EndTurnAction = exports.EndTurnAction = declare(GameAction, {
+	constructor: function EndTurnAction(unitId) {
+		this.unitId = unitId;
+	},
+	
+	execute: function execute(game) {
+		this.unitById(game).endTurn(game);
+	},
+	
+	'static __SERMAT__': {
+		identifier: 'EndTurnAction',
+		serializer: function serialize_ActivateAction(obj) {
+			return [obj.unitId];
+		}
+	}
+}); // declare EndTurnAction
+
+/** ## MoveAction ##################################################################################
+*/
+var MoveAction = exports.MoveAction = declare(GameAction, {
+	constructor: function MoveAction(unitId, position, run) {
+		this.unitId = unitId;
+		this.position = position;
+		this.run = run;
+	},
+	
+	/** The execution of a `Move` actions changes the unit's position.
+	*/
+	execute: function execute(game) {
+		//TODO Check the unit can really move to the position.
+		this.unitById(game).move(game, this.position, this.run);
+	},
+	
+	'static __SERMAT__': {
+		identifier: 'MoveAction',
+		serializer: function serialize_MoveAction(obj) {
+			return [obj.unitId, Array.apply(Array, obj.position), obj.run];
+		}
+	}
+}); // declare MoveAction
+
+/** ## ShootAction #################################################################################
+ */
+var ShootAction = exports.ShootAction = declare(GameAction, {
+	constructor: function ShootAction(unitId, targetId) {
+		this.unitId = unitId;
+		this.targetId = targetId;
+	},
+	
+	aleatories: function aleatories(game) {
+		var shooter = this.unitById(game),
+			target = this.unitById(game, this.targetId),
+			distance = game.terrain.canSee(shooter, target),
+			attackCount = 0;
+		shooter.models.forEach(function (model) {
+			model.equipments.forEach(function (equipment) {
+				if (equipment.range >= distance) {
+					attackCount += equipment.attacks;
+				}
+			});
+		});
+		var aleatory = new ShootAleatory(shooter.quality, target.defense, attackCount);
+		return { wounds: aleatory };
+	},
+	
+	execute: function execute(game, haps) {
+		var wounds = haps.wounds,
+			targetUnit = this.unitById(game, this.targetId);
+		if (wounds > 0) {
+			var targetWorth = targetUnit.worth();
+			targetUnit.suffer(game, wounds);
+			// The actions worth depends on the damage achieved.
+			this.worth = targetWorth - targetUnit.worth();
+		}
+		this.unitById(game, this.unitId).endTurn(game);
+	},
+	
+	/** Serialization and materialization using Sermat.
+	*/
+	'static __SERMAT__': {
+		identifier: 'ShootAction',
+		serializer: function serialize_ShootAction(obj) {
+			return [obj.unitId, obj.targetId];
+		}
+	}
+}); // declare ShootAction
+
+/** ## AssaultAction ###############################################################################
+*/
+var AssaultAction = exports.AssaultAction = declare(GameAction, {
+	constructor: function AssaultAction(unitId, targetId) {
+		this.unitId = unitId;
+		this.targetId = targetId;
+	},
+	
+	aleatories: function aleatories(game) {
+		return null;
+	},
+	
+	//FIXME falta que targetUnit contraataque
+	execute: function execute(game, haps) { 
+		var counterWounds = 0;
+		var wounds = haps.wounds;
+		var targetUnit = this.unitById(game, this.targetId);
+		if (wounds > 0) {
+			targetUnit.suffer(game, wounds);
+		}
+		var unit = this.unitById(game, this.unitId);
+		unit.disable(game);
+		//worth
+		this.worth = 0;
+		var targetCost = targetUnit.cost();
+		if (targetUnit.isDead(game)){
+			this.worth += targetCost;
+		}
+		this.worth += targetCost*wounds/targetUnit.size(); //FIXME no funciona correctamente con tought
+		if (unit.isDead(game)){
+			this.worth -= unit.cost();
+		}
+		this.worth -= unit.cost()*counterWounds/unit.size(); //FIXME no funciona correctamente con tought
+		
+	},
+	
+	/** Serialization and materialization using Sermat.
+	*/
+	'static __SERMAT__': {
+		identifier: 'AssaultAction',
+		serializer: function serialize_AssaultAction(obj) {
+			return [unitId, targetId];
+		}
+	}
+}); // declare AssaultAction
+
+/** ## Dice rolls ##################################################################################
+
+*/
+var combinations = base.math.combinations;
+
+var rolls = exports.rolls = function rolls(p, n) {
+    return n <= 0 ? [1] : Iterable.range(n + 1).map(function (i) {
+        return Math.pow(p, i) * Math.pow(1 - p, n - i) * combinations(n, i);
+    }).toArray();
+};
+
+var rerolls = exports.rerolls = function rerolls(p, ns) {
+    var r = Iterable.repeat(0, ns.length).toArray();
+    ns.forEach(function (p2, n) {
+        if (n === 0) { // This is only an optimization.
+            r[0] += p2;
+        } else {
+            rolls(p, n).forEach(function (p3, i) {
+                r[i] += p2 * p3; 
+            });
+        }
+    });
+    return r;
+};
+
+var addRolls = exports.addRolls = function addRolls(rs1, rs2) {
+	var len1 = rs1.length, 
+		len2 = rs2.length;
+	return Iterable.range(len1 + len2 - 1).map(function (i) {
+		return Iterable.range(i + 1).filter(function (j) {
+			return j < len1 && (i - j) < len2;
+		}, function (j) {
+			return rs1[j] * rs2[i - j];
+		}).sum();
+	}).toArray();
+};
+
+var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory, {
+	constructor: function ShootAleatory(shooterQuality, targetDefense, attackCount) {
+		this.shooterQuality = shooterQuality |0;
+		this.targetDefense = targetDefense |0;
+		this.attackCount = attackCount |0;
+		this.__hitProb__ = Math.max(0, Math.min(1, (6 - shooterQuality + 1) / 6));
+		this.__saveProb__ = Math.max(0, Math.min(1, (6 - targetDefense + 1) / 6));
+		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
+		this.__distribution__ = iterable(rs).map(function (p, v) {
+			return [v, p];			
+		}).toArray();
+	},
+
+	distribution: function distribution() {
+		return iterable(this.__distribution__);
+	},
+	
+	value: function value(random) {
+		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
+	},
+
+	'static __SERMAT__': {
+		identifier: 'ShootAleatory',
+		serializer: function serialize_ShootAleatory(obj) {
+			return [obj.shooterQuality, obj.targetDefense, obj.attackCount];
+		}
+	}
+});
+
 /** # Wargame
  * 
  */
@@ -567,6 +824,359 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 	}
 }); // declare Wargame
 
+
+
+/** # Terrain
+
+*/
+
+function distance(p1, p2) {
+	var d0 = p1[0] - p2[0],
+		d1 = p1[1] - p2[1];
+	return Math.sqrt(d0 * d0 + d1 * d1);
+}
+
+var Terrain = exports.Terrain = declare({
+	SURROUNDINGS: [
+		{dx:-1, dy:-1, cost: Math.SQRT2},
+		{dx:-1, dy: 0, cost: 1},
+		{dx:-1, dy: 1, cost: Math.SQRT2},
+		{dx: 0, dy:-1, cost: 1},
+		{dx: 0, dy: 1, cost: 1},
+		{dx: 1, dy:-1, cost: Math.SQRT2},
+		{dx: 1, dy: 0, cost: 1},
+		{dx: 1, dy: 1, cost: Math.SQRT2}
+	],
+
+	/** The map of the terrain is made of tiles taken from a tileSet. This is the default tile set.
+	*/
+	tileSet: [
+		{ passable: true, visible: true },
+		{ passable: false, visible: false }
+	],
+
+	map: [
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000001000000001111111100000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111110011111111111001111111111111111111111100",
+		"111111000011111111111001111111111111111111111100",
+		"100000000011111111111001111111111111111111111100",
+		"100000000111111111111001111111111111111111111100",
+		"100111001111111111111001111111111111111111111100",
+		"100110000111111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000001111111100000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000000000000001000000000000000000000000000000000",
+		"000001111111111111111111111100000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000"
+	].map(function (line) {
+		return new Uint8Array(line.split(''));
+	}),
+
+	__unitsByPosition__: {},
+
+	constructor: function Terrain(args) {
+		//TODO initialization
+		this.width = this.map.length;
+		this.height = this.map[0].length;
+	},
+
+	resetTerrain: function resetTerrain(wargame){
+		this.__unitsByPosition__ = this.unitsByPosition(wargame);
+	},
+
+	unitsByPosition: function unitsByPosition(wargame){
+		var armies = wargame.armies,
+			result = {};
+		for (var team in armies) {
+			armies[team].units.forEach(function (unit) {
+				if (!unit.isDead()){
+		          	result[unit.position] = unit;
+				}
+			});
+		}
+		return result;
+	},
+
+	tileAt: function tileAt(position) {
+		var tile = this.map[position[0]] && this.map[position[0]][position[1]];
+		return this.tileSet[tile];
+	},
+
+	isPassable: function isPassable(position, checkUnits) {
+		var tile = this.tileAt(position);
+		return !!(tile && tile.passable &&
+			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
+	},
+
+	isVisible: function isVisible(position, checkUnits) {
+		var tile = this.tileAt(position);
+		return !!(tile && tile.visible &&
+			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
+	},
+
+	// ## Movement ################################################################################
+
+	/** Returns all reachable positions of the given unit.
+	*/
+	reachablePositions: function reachablePositions(unit, range) {
+		range = range || 12;
+		var visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[unit.position] = 0;
+
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+				pending.push(pos2);
+			}
+		}
+		return visited;
+	},
+
+	// ## Visibility ##############################################################################
+
+	'dual bresenham': function bresenham(point1, point2, maxRange){
+		maxRange = maxRange || Infinity;
+		var result = [],
+			dx = Math.abs(point2[0] - point1[0]),
+			dy = Math.abs(point2[1] - point1[1]),
+			sx = (point1[0] < point2[0]) ? 1 : -1,
+			sy = (point1[1] < point2[1]) ? 1 : -1,
+			curLoc = point1.slice(),
+			err = dx - dy,
+			e2;
+		while (maxRange--){
+			result.push(curLoc.slice());
+			if (curLoc[0] === point2[0] && curLoc[1] === point2[1]) break;
+			e2 = err * 2;
+			if (e2 > -dy) {
+				err -= dy;
+				curLoc[0] += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				curLoc[1] += sy;
+			}
+		}
+		return result;
+	},
+
+	canShoot:function canShoot(shooterUnit, targetUnit){
+		if (shooterUnit.army !== targetUnit.army) {
+			return Infinity;
+		}
+		var distance = distance(shooterUnit.position, targetUnit.position);
+		if (distance > shooterUnit.maxRange()) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnit.position, targetUnit.position, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos] !== targetUnit) {
+					return Infinity;
+				}
+			}
+			return distance;
+		}
+	},
+
+	areaOfSight: function areaOfSight(unit, radius) {
+		radius = radius || Infinity;
+		var pos = unit.position,
+			terrain = this,
+			area = {};
+		iterable(this.BRESENHAM_CACHE).forEachApply(function (_, path) {
+			var pos2;
+			for (var i = 1; i < path.length && i <= radius; i++) {
+				pos2 = path[i];
+				pos2 = [pos[0] + pos2[0], pos[1] + pos2[1]];
+				if (!terrain.isVisible(pos2)) break;
+				area[pos2] = i;
+				if (terrain.__unitsByPosition__[pos2]) break;
+			}
+		});
+		return area;
+	},
+
+	// ## Utilities ###############################################################################
+
+	'static __SERMAT__': {
+		serializer: function serialize_Terrain(obj) {
+			return [];
+		}
+	}
+}); // declare Terrain
+
+Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius) {
+	var pointCache = {},
+		result = { radius: radius };
+
+	function cachePath(path) {
+		return path.map(function (point) {
+			return pointCache[point] || (pointCache[point] = point);
+		});
+	}
+
+	for (var i = -radius; i <= radius; i++) {
+		result[[i, -radius]] = Terrain.bresenham([0, 0], [i, -radius]);
+		result[[i, +radius]] = Terrain.bresenham([0, 0], [i, +radius]);
+		if (i !== -radius && i !== radius) {
+			result[[-radius, i]] = Terrain.bresenham([0, 0], [-radius, i]);
+			result[[+radius, i]] = Terrain.bresenham([0, 0], [+radius, i]);
+		}
+	}
+	return result;
+})(50);
+
+//var inf= new LW.InfluenceMap(game2,"Red")
+
+var InfluenceMap = exports.InfluenceMap = declare({
+	momentum: 0.67,
+	decay: 0.21,
+	iterations: 5,
+
+	constructor: function InfluenceMap(game, role){
+		this.grid = game.terrain.terrainGrid();
+		this.role = role;
+    },
+
+	update: function update(game) {
+		var influenceMap = this,
+			grid = this.grid,
+			pos;
+		this.unitsInfluences(game);
+		for (var i = 0; i < this.iterations; i++) {
+			grid=this.spread(grid);
+		}
+		return grid;
+	},
+
+	unitsInfluences: function unitsInfluences(game) {
+		var imap = this,
+			sign,
+			grid = this.grid,
+			posX,
+			posY;
+		for (var army in game.armies){
+			sign = army === this.role ? +1 : -1;
+			game.armies[army].units.forEach(function (unit){
+				if (!unit.isDead()) {
+					posX = unit.position[0] |0;
+					posY = unit.position[1] |0;
+					if (!grid[posX]) {
+						grid[posX]=[];
+						grid[posX][posY]=0;
+					}else if (!grid[posX][posY]){
+						grid[posX][posY]= 0;
+					}
+					grid[posX][posY] = imap.influence(unit) * sign;
+				}
+			});
+		}
+	},
+
+	influence: function influence(unit) {
+		return unit.worth(); //FIXME Too simple?
+	},
+
+
+	getMomentumInf: function getMomentumInf(grid,r,c,decays){
+		var v,
+			di,dj,inf=0,absInf,absV;
+		for ( di = -1; di < 2; di++) {
+			for (dj = -1; dj < 2; dj++) {
+				if ((di !== 0 || dj !== 0) && grid[r+di] && (v = grid[r+di][c+dj])) {
+					v *= decays[di*di+dj*dj];
+					absInf =inf<0 ? -inf: inf;
+					absV   =v<0 ?   -v  : v;
+					//	if (Math.abs(inf) < Math.abs(v)) {
+					if (absInf < absV) {
+						inf = v;
+					}
+				}
+			}
+		}
+		return inf;
+	},
+
+	spread: function spread(grid) {
+	//	var start=Date.now();
+		var decay = this.decay,
+			decays = [NaN, Math.exp(-1 * decay), Math.exp(-Math.SQRT2 * decay)],
+			momentum = this.momentum,
+			oneGrid=[],
+			value,
+			inf;
+
+		for (var r= 0; r <grid.length; r++) {
+			for (var c = 0; c < grid[r].length;c++) {
+				value=grid[r][c];
+				if (!isNaN(value)) {
+					inf = this.getMomentumInf(grid,r,c,decays);
+					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
+					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
+				}else{
+					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
+					oneGrid[r][c] =  "t";
+				}
+			}
+		}
+		//console.log(Date.now()- start);
+		return oneGrid;
+
+    },
+
+
+}); // declare InfluenceMap
 
 
 exports.test = {
@@ -850,263 +1460,6 @@ var terrain = new Terrain([
 	}
 }; // scenarios
 
-
-/** ## GameAction ##################################################################################
-
-`GameAction` is the base class of all game actions. The game component delegates action execution on
-these classes.
-*/
-var GameAction = exports.GameAction = declare({
-	/** Game actions have no random variables by default.
-	*/
-	aleatories: function aleatories(game) {
-		return null;
-	},
-	
-	execute: base.objects.unimplemented('GameAction', 'execute(game, haps)'),
-	
-	unitById: function unitById(game, id) {
-		id = id || this.unitId;
-		var unit = null;
-		for (var i = 0; !unit && i < game.players.length; i++) {
-			var units = game.armies[game.players[i]].units;
-			for (var j = 0; j < units.length; j++) {
-				if (units[j].id == id) {
-					unit = units[j];
-					break;
-				}
-			}
-		}
-		raiseIf(!unit, 'Unit ', id, ' was not found!');
-		return unit;
-	},
-	
-	/** The action's `worth` is the value that the action takes after being executed. Zero by default.
-	*/
-	worth: function worth() {
-		return 0;
-	}
-}); // declare GameAction
-
-/** ## ActivateAction ##############################################################################
-*/
-var ActivateAction = exports.ActivateAction = declare(GameAction, {
-	constructor: function ActivateAction(unitId) {
-		this.unitId = unitId;
-	},
-	
-	execute: function execute(game) {
-		this.unitById(game).activate(game);
-	},
-	
-	'static __SERMAT__': {
-		identifier: 'ActivateAction',
-		serializer: function serialize_ActivateAction(obj) {
-			return [obj.unitId];
-		}
-	}
-}); // declare ActivateAction
-
-/** ## EndTurn #####################################################################################
-*/
-var EndTurnAction = exports.EndTurnAction = declare(GameAction, {
-	constructor: function EndTurnAction(unitId) {
-		this.unitId = unitId;
-	},
-	
-	execute: function execute(game) {
-		this.unitById(game).endTurn(game);
-	},
-	
-	'static __SERMAT__': {
-		identifier: 'EndTurnAction',
-		serializer: function serialize_ActivateAction(obj) {
-			return [obj.unitId];
-		}
-	}
-}); // declare EndTurnAction
-
-/** ## MoveAction ##################################################################################
-*/
-var MoveAction = exports.MoveAction = declare(GameAction, {
-	constructor: function MoveAction(unitId, position, run) {
-		this.unitId = unitId;
-		this.position = position;
-		this.run = run;
-	},
-	
-	/** The execution of a `Move` actions changes the unit's position.
-	*/
-	execute: function execute(game) {
-		//TODO Check the unit can really move to the position.
-		this.unitById(game).move(game, this.position, this.run);
-	},
-	
-	'static __SERMAT__': {
-		identifier: 'MoveAction',
-		serializer: function serialize_MoveAction(obj) {
-			return [obj.unitId, Array.apply(Array, obj.position), obj.run];
-		}
-	}
-}); // declare MoveAction
-
-/** ## ShootAction #################################################################################
- */
-var ShootAction = exports.ShootAction = declare(GameAction, {
-	constructor: function ShootAction(unitId, targetId) {
-		this.unitId = unitId;
-		this.targetId = targetId;
-	},
-	
-	aleatories: function aleatories(game) {
-		var shooter = this.unitById(game),
-			target = this.unitById(game, this.targetId),
-			distance = game.terrain.canSee(shooter, target),
-			attackCount = 0;
-		shooter.models.forEach(function (model) {
-			model.equipments.forEach(function (equipment) {
-				if (equipment.range >= distance) {
-					attackCount += equipment.attacks;
-				}
-			});
-		});
-		var aleatory = new ShootAleatory(shooter.quality, target.defense, attackCount);
-		return { wounds: aleatory };
-	},
-	
-	execute: function execute(game, haps) {
-		var wounds = haps.wounds,
-			targetUnit = this.unitById(game, this.targetId);
-		if (wounds > 0) {
-			var targetWorth = targetUnit.worth();
-			targetUnit.suffer(game, wounds);
-			// The actions worth depends on the damage achieved.
-			this.worth = targetWorth - targetUnit.worth();
-		}
-		this.unitById(game, this.unitId).endTurn(game);
-	},
-	
-	/** Serialization and materialization using Sermat.
-	*/
-	'static __SERMAT__': {
-		identifier: 'ShootAction',
-		serializer: function serialize_ShootAction(obj) {
-			return [obj.unitId, obj.targetId];
-		}
-	}
-}); // declare ShootAction
-
-/** ## AssaultAction ###############################################################################
-*/
-var AssaultAction = exports.AssaultAction = declare(GameAction, {
-	constructor: function AssaultAction(unitId, targetId) {
-		this.unitId = unitId;
-		this.targetId = targetId;
-	},
-	
-	aleatories: function aleatories(game) {
-		return null;
-	},
-	
-	//FIXME falta que targetUnit contraataque
-	execute: function execute(game, haps) { 
-		var counterWounds = 0;
-		var wounds = haps.wounds;
-		var targetUnit = this.unitById(game, this.targetId);
-		if (wounds > 0) {
-			targetUnit.suffer(game, wounds);
-		}
-		var unit = this.unitById(game, this.unitId);
-		unit.disable(game);
-		//worth
-		this.worth = 0;
-		var targetCost = targetUnit.cost();
-		if (targetUnit.isDead(game)){
-			this.worth += targetCost;
-		}
-		this.worth += targetCost*wounds/targetUnit.size(); //FIXME no funciona correctamente con tought
-		if (unit.isDead(game)){
-			this.worth -= unit.cost();
-		}
-		this.worth -= unit.cost()*counterWounds/unit.size(); //FIXME no funciona correctamente con tought
-		
-	},
-	
-	/** Serialization and materialization using Sermat.
-	*/
-	'static __SERMAT__': {
-		identifier: 'AssaultAction',
-		serializer: function serialize_AssaultAction(obj) {
-			return [unitId, targetId];
-		}
-	}
-}); // declare AssaultAction
-
-/** ## Dice rolls ##################################################################################
-
-*/
-var combinations = base.math.combinations;
-
-var rolls = exports.rolls = function rolls(p, n) {
-    return n <= 0 ? [1] : Iterable.range(n + 1).map(function (i) {
-        return Math.pow(p, i) * Math.pow(1 - p, n - i) * combinations(n, i);
-    }).toArray();
-};
-
-var rerolls = exports.rerolls = function rerolls(p, ns) {
-    var r = Iterable.repeat(0, ns.length).toArray();
-    ns.forEach(function (p2, n) {
-        if (n === 0) { // This is only an optimization.
-            r[0] += p2;
-        } else {
-            rolls(p, n).forEach(function (p3, i) {
-                r[i] += p2 * p3; 
-            });
-        }
-    });
-    return r;
-};
-
-var addRolls = exports.addRolls = function addRolls(rs1, rs2) {
-	var len1 = rs1.length, 
-		len2 = rs2.length;
-	return Iterable.range(len1 + len2 - 1).map(function (i) {
-		return Iterable.range(i + 1).filter(function (j) {
-			return j < len1 && (i - j) < len2;
-		}, function (j) {
-			return rs1[j] * rs2[i - j];
-		}).sum();
-	}).toArray();
-};
-
-var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory, {
-	constructor: function ShootAleatory(shooterQuality, targetDefense, attackCount) {
-		this.shooterQuality = shooterQuality |0;
-		this.targetDefense = targetDefense |0;
-		this.attackCount = attackCount |0;
-		this.__hitProb__ = Math.max(0, Math.min(1, (6 - shooterQuality + 1) / 6));
-		this.__saveProb__ = Math.max(0, Math.min(1, (6 - targetDefense + 1) / 6));
-		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
-		this.__distribution__ = iterable(rs).map(function (p, v) {
-			return [v, p];			
-		}).toArray();
-	},
-
-	distribution: function distribution() {
-		return iterable(this.__distribution__);
-	},
-	
-	value: function value(random) {
-		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
-	},
-
-	'static __SERMAT__': {
-		identifier: 'ShootAleatory',
-		serializer: function serialize_ShootAleatory(obj) {
-			return [obj.shooterQuality, obj.targetDefense, obj.attackCount];
-		}
-	}
-});
 
 /** # Grim Future
 
@@ -2207,11 +2560,9 @@ exports.Renderer = declare({
 		ctx.fillStyle = 'white';
 	},
 
-	__scope__: function __scope__(wargame, block) {
+	renderScope: function renderScope(width, height, block) {
 		var canvas = this.canvas,
-			ctx = this.ctx,
-			width = wargame.terrain.width,
-			height = wargame.terrain.height;
+			ctx = this.ctx;
 		ctx.save();
 		ctx.scale(canvas.width / width, canvas.height / height);
 		try {
@@ -2222,9 +2573,9 @@ exports.Renderer = declare({
 	},
 
 	render: function render(wargame) {
-		this.__scope__(wargame, function (ctx) {
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
 			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-			var terrain = wargame.terrain;
 			for (var x = 0, width = terrain.width; x < width; x++) {
 				for (var y = 0, height = terrain.height; y < height; y++) {
 					if (!terrain.isPassable([x, y])) {
@@ -2253,15 +2604,16 @@ exports.Renderer = declare({
 	renderSight: function renderSight(wargame, unit) {
 		unit = unit || wargame.__activeUnit__;
 		if (unit) {
-			this.__scope__(wargame, function (ctx) {
-				var renderer = this,
-					range = unit.maxRange(),
-				 	sight = wargame.terrain.areaOfSight(unit, range);
-				iterable(sight).forEachApply(function (pos, d) {
-					var alpha = (1 - d / range) * 0.85 + 0.15;
-					pos = pos.split(',');
-					renderer.drawSquare(+pos[0], +pos[1], 1, 1, 'rgba(255,255,0,'+ alpha +')');
-				});
+			var terrain = wargame.terrain;
+			this.renderScope(terrain.width, terrain.height, function (ctx) {
+				var range = unit.maxRange(),
+				 	sight = terrain.areaOfSight(unit, range),
+					alpha, pos;
+				for (var p in sight) {
+					alpha = (1 - sight[p] / range) * 0.8 + 0.2;
+					pos = p.split(',');
+					this.drawSquare(+pos[0], +pos[1], 1, 1, 'rgba(255,255,0,'+ alpha +')');
+				}
 			});
 		}
 	},
@@ -2273,7 +2625,7 @@ exports.Renderer = declare({
 	},
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 	render2: function render2(wargame) {
 		var renderer = this,
 			canvas = this.canvas,
@@ -2449,10 +2801,10 @@ exports.Renderer = declare({
 			}
 		}
 		ctx.restore();
-	},
+	},*/
 }); //declare Renderer.
 
-
+/*
 
 
 
@@ -2468,6 +2820,7 @@ var _interpolateColor = function(color1, color2, factor) {
   }
   return result;
 };
+*/
 
 
 /** # AbstractedWargame
@@ -2628,359 +2981,6 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	}
 }); // declare AbstractedWargame
 
-
-
-/** # Terrain
-
-*/
-
-function distance(p1, p2) {
-	var d0 = p1[0] - p2[0],
-		d1 = p1[1] - p2[1];
-	return Math.sqrt(d0 * d0 + d1 * d1);
-}
-
-var Terrain = exports.Terrain = declare({
-	SURROUNDINGS: [
-		{dx:-1, dy:-1, cost: Math.SQRT2},
-		{dx:-1, dy: 0, cost: 1},
-		{dx:-1, dy: 1, cost: Math.SQRT2},
-		{dx: 0, dy:-1, cost: 1},
-		{dx: 0, dy: 1, cost: 1},
-		{dx: 1, dy:-1, cost: Math.SQRT2},
-		{dx: 1, dy: 0, cost: 1},
-		{dx: 1, dy: 1, cost: Math.SQRT2}
-	],
-
-	/** The map of the terrain is made of tiles taken from a tileSet. This is the default tile set.
-	*/
-	tileSet: [
-		{ passable: true, visible: true },
-		{ passable: false, visible: false }
-	],
-
-	map: [
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000001000000001111111100000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"111111000011111111111001111111111111111111111100",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"111111110011111111111001111111111111111111111100",
-		"111111000011111111111001111111111111111111111100",
-		"100000000011111111111001111111111111111111111100",
-		"100000000111111111111001111111111111111111111100",
-		"100111001111111111111001111111111111111111111100",
-		"100110000111111111111001111111111111111111111100",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000001111111100000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000001111111111111111111111100000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"111111000011111111111001111111111111111111111100",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000"
-	].map(function (line) {
-		return new Uint8Array(line.split(''));
-	}),
-
-	__unitsByPosition__: {},
-
-	constructor: function Terrain(args) {
-		//TODO initialization
-		this.width = this.map.length;
-		this.height = this.map[0].length;
-	},
-
-	resetTerrain: function resetTerrain(wargame){
-		this.__unitsByPosition__ = this.unitsByPosition(wargame);
-	},
-
-	unitsByPosition: function unitsByPosition(wargame){
-		var armies = wargame.armies,
-			result = {};
-		for (var team in armies) {
-			armies[team].units.forEach(function (unit) {
-				if (!unit.isDead()){
-		          	result[unit.position] = unit;
-				}
-			});
-		}
-		return result;
-	},
-
-	tileAt: function tileAt(position) {
-		var tile = this.map[position[0]] && this.map[position[0]][position[1]];
-		return this.tileSet[tile];
-	},
-
-	isPassable: function isPassable(position, checkUnits) {
-		var tile = this.tileAt(position);
-		return !!(tile && tile.passable &&
-			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
-	},
-
-	isVisible: function isVisible(position, checkUnits) {
-		var tile = this.tileAt(position);
-		return !!(tile && tile.visible &&
-			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
-	},
-
-	// ## Movement ################################################################################
-
-	/** Returns all reachable positions of the given unit.
-	*/
-	reachablePositions: function reachablePositions(unit, range) {
-		range = range || 12;
-		var visited = {},
-			pending = [unit.position],
-			width = this.width,
-			height = this.height,
-			SURROUNDINGS = this.SURROUNDINGS,
-            	pos, pos2, cost, cost2, delta, tile;
-		visited[unit.position] = 0;
-
-		for (var i = 0; i < pending.length; i++) {
-			pos = pending[i];
-			cost = visited[pos];
-			for (var j = 0; j < SURROUNDINGS.length; j++) {
-				delta = SURROUNDINGS[j];
-				cost2 = cost + delta.cost;
-				if (cost2 > range) continue;
-				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
-				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
-				visited[pos2] = cost2;
-				pending.push(pos2);
-			}
-		}
-		return visited;
-	},
-
-	// ## Visibility ##############################################################################
-
-	'dual bresenham': function bresenham(point1, point2, maxRange){
-		maxRange = maxRange || Infinity;
-		var result = [],
-			dx = Math.abs(point2[0] - point1[0]),
-			dy = Math.abs(point2[1] - point1[1]),
-			sx = (point1[0] < point2[0]) ? 1 : -1,
-			sy = (point1[1] < point2[1]) ? 1 : -1,
-			curLoc = point1.slice(),
-			err = dx - dy,
-			e2;
-		while (maxRange--){
-			result.push(curLoc.slice());
-			if (curLoc[0] === point2[0] && curLoc[1] === point2[1]) break;
-			e2 = err * 2;
-			if (e2 > -dy) {
-				err -= dy;
-				curLoc[0] += sx;
-			}
-			if (e2 < dx) {
-				err += dx;
-				curLoc[1] += sy;
-			}
-		}
-		return result;
-	},
-
-	canShoot:function canShoot(shooterUnit, targetUnit){
-		if (shooterUnit.army !== targetUnit.army) {
-			return Infinity;
-		}
-		var distance = distance(shooterUnit.position, targetUnit.position);
-		if (distance > shooterUnit.maxRange()) {
-			return Infinity;
-		} else {
-			var sight = this.bresenham(shooterUnit.position, targetUnit.position, distance),
-				pos;
-			for (var i = 0; i < sight.length; i++) {
-				pos = sight[i];
-				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
-						this.__unitsByPosition__[pos] !== targetUnit) {
-					return Infinity;
-				}
-			}
-			return distance;
-		}
-	},
-
-	areaOfSight: function areaOfSight(unit, radius) {
-		radius = radius || Infinity;
-		var pos = unit.position,
-			terrain = this,
-			area = {};
-		iterable(this.BRESENHAM_CACHE).forEachApply(function (_, path) {
-			var pos2;
-			for (var i = 1; i < path.length && i <= radius; i++) {
-				pos2 = path[i];
-				pos2 = [pos[0] + pos2[0], pos[1] + pos2[1]];
-				if (!terrain.isVisible(pos2)) break;
-				area[pos2] = i;
-				if (terrain.__unitsByPosition__[pos2]) break;
-			}
-		});
-		return area;
-	},
-
-	// ## Utilities ###############################################################################
-
-	'static __SERMAT__': {
-		serializer: function serialize_Terrain(obj) {
-			return [];
-		}
-	}
-}); // declare Terrain
-
-Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius) {
-	var pointCache = {},
-		result = { radius: radius };
-
-	function cachePath(path) {
-		return path.map(function (point) {
-			return pointCache[point] || (pointCache[point] = point);
-		});
-	}
-
-	for (var i = -radius; i <= radius; i++) {
-		result[[i, -radius]] = Terrain.bresenham([0, 0], [i, -radius]);
-		result[[i, +radius]] = Terrain.bresenham([0, 0], [i, +radius]);
-		if (i !== -radius && i !== radius) {
-			result[[-radius, i]] = Terrain.bresenham([0, 0], [-radius, i]);
-			result[[+radius, i]] = Terrain.bresenham([0, 0], [+radius, i]);
-		}
-	}
-	return result;
-})(50);
-
-//var inf= new LW.InfluenceMap(game2,"Red")
-
-var InfluenceMap = exports.InfluenceMap = declare({
-	momentum: 0.67,
-	decay: 0.21,
-	iterations: 5,
-
-	constructor: function InfluenceMap(game, role){
-		this.grid = game.terrain.terrainGrid();
-		this.role = role;
-    },
-
-	update: function update(game) {
-		var influenceMap = this,
-			grid = this.grid,
-			pos;
-		this.unitsInfluences(game);
-		for (var i = 0; i < this.iterations; i++) {
-			grid=this.spread(grid);
-		}
-		return grid;
-	},
-
-	unitsInfluences: function unitsInfluences(game) {
-		var imap = this,
-			sign,
-			grid = this.grid,
-			posX,
-			posY;
-		for (var army in game.armies){
-			sign = army === this.role ? +1 : -1;
-			game.armies[army].units.forEach(function (unit){
-				if (!unit.isDead()) {
-					posX = unit.position[0] |0;
-					posY = unit.position[1] |0;
-					if (!grid[posX]) {
-						grid[posX]=[];
-						grid[posX][posY]=0;
-					}else if (!grid[posX][posY]){
-						grid[posX][posY]= 0;
-					}
-					grid[posX][posY] = imap.influence(unit) * sign;
-				}
-			});
-		}
-	},
-
-	influence: function influence(unit) {
-		return unit.worth(); //FIXME Too simple?
-	},
-
-
-	getMomentumInf: function getMomentumInf(grid,r,c,decays){
-		var v,
-			di,dj,inf=0,absInf,absV;
-		for ( di = -1; di < 2; di++) {
-			for (dj = -1; dj < 2; dj++) {
-				if ((di !== 0 || dj !== 0) && grid[r+di] && (v = grid[r+di][c+dj])) {
-					v *= decays[di*di+dj*dj];
-					absInf =inf<0 ? -inf: inf;
-					absV   =v<0 ?   -v  : v;
-					//	if (Math.abs(inf) < Math.abs(v)) {
-					if (absInf < absV) {
-						inf = v;
-					}
-				}
-			}
-		}
-		return inf;
-	},
-
-	spread: function spread(grid) {
-	//	var start=Date.now();
-		var decay = this.decay,
-			decays = [NaN, Math.exp(-1 * decay), Math.exp(-Math.SQRT2 * decay)],
-			momentum = this.momentum,
-			oneGrid=[],
-			value,
-			inf;
-
-		for (var r= 0; r <grid.length; r++) {
-			for (var c = 0; c < grid[r].length;c++) {
-				value=grid[r][c];
-				if (!isNaN(value)) {
-					inf = this.getMomentumInf(grid,r,c,decays);
-					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
-					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
-				}else{
-					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
-					oneGrid[r][c] =  "t";
-				}
-			}
-		}
-		//console.log(Date.now()- start);
-		return oneGrid;
-
-    },
-
-
-}); // declare InfluenceMap
 
 
 /** See __prologue__.js
