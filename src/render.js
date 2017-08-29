@@ -5,11 +5,9 @@ exports.Renderer = declare({
 		ctx.fillStyle = 'white';
 	},
 
-	__scope__: function __scope__(wargame, block) {
+	renderScope: function renderScope(width, height, block) {
 		var canvas = this.canvas,
-			ctx = this.ctx,
-			width = wargame.terrain.width,
-			height = wargame.terrain.height;
+			ctx = this.ctx;
 		ctx.save();
 		ctx.scale(canvas.width / width, canvas.height / height);
 		try {
@@ -20,9 +18,9 @@ exports.Renderer = declare({
 	},
 
 	render: function render(wargame) {
-		this.__scope__(wargame, function (ctx) {
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
 			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-			var terrain = wargame.terrain;
 			for (var x = 0, width = terrain.width; x < width; x++) {
 				for (var y = 0, height = terrain.height; y < height; y++) {
 					if (!terrain.isPassable([x, y])) {
@@ -51,15 +49,16 @@ exports.Renderer = declare({
 	renderSight: function renderSight(wargame, unit) {
 		unit = unit || wargame.__activeUnit__;
 		if (unit) {
-			this.__scope__(wargame, function (ctx) {
-				var renderer = this,
-					range = unit.maxRange(),
-				 	sight = wargame.terrain.areaOfSight(unit, range);
-				iterable(sight).forEachApply(function (pos, d) {
-					var alpha = (1 - d / range) * 0.8 + 0.2;
-					pos = pos.split(',');
-					renderer.drawSquare(+pos[0], +pos[1], 1, 1, 'rgba(255,255,0,'+ alpha +')');
-				});
+			var terrain = wargame.terrain;
+			this.renderScope(terrain.width, terrain.height, function (ctx) {
+				var range = unit.maxRange(),
+				 	sight = terrain.areaOfSight(unit, range),
+					alpha, pos;
+				for (var p in sight) {
+					alpha = (1 - sight[p] / range) * 0.8 + 0.2;
+					pos = p.split(',');
+					this.drawSquare(+pos[0], +pos[1], 1, 1, 'rgba(255,255,0,'+ alpha +')');
+				}
 			});
 		}
 	},
@@ -71,7 +70,7 @@ exports.Renderer = declare({
 	},
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 	render2: function render2(wargame) {
 		var renderer = this,
 			canvas = this.canvas,
@@ -247,10 +246,10 @@ exports.Renderer = declare({
 			}
 		}
 		ctx.restore();
-	},
+	},*/
 }); //declare Renderer.
 
-
+/*
 
 
 
@@ -266,3 +265,4 @@ var _interpolateColor = function(color1, color2, factor) {
   }
   return result;
 };
+*/
