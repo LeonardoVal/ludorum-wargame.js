@@ -22,7 +22,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
 												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
 												//Deberia ir ya deberian estar ordenadas por estos 
-					m.__distance__ = game.terrain.getDistance(shooter.position, target.position);
+					m.__distance__ = game.terrain.distance(shooter.position, target.position);
 					return true;
 				} else {
 					return false;
@@ -37,7 +37,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			approaches= moves.filter(function (m) {
 				//range = shooter.model.range
 				 //si ya la calcule para la unidad la deberia usar no la deberia pasar entre turno y turno pero deberia mantenersepor el turno
-				m.__range__ = game.terrain.canShoot(shooter, target, shooter.maxRange(),theGame);
+				m.__range__ = game.terrain.canShoot(shooter, target);
 				return m.__range__ !== Infinity;
 			});
 			//hooter.areaOfSight=areaOfSight;

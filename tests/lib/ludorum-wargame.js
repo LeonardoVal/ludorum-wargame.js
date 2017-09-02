@@ -523,7 +523,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 	aleatories: function aleatories(game) {
 		var shooter = this.unitById(game),
 			target = this.unitById(game, this.targetId),
-			distance = game.terrain.canSee(shooter, target),
+			distance = game.terrain.canShoot(shooter, target),
 			attackCount = 0;
 		shooter.models.forEach(function (model) {
 			model.equipments.forEach(function (equipment) {
@@ -830,11 +830,6 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 
 */
 
-function distance(p1, p2) {
-	var d0 = p1[0] - p2[0],
-		d1 = p1[1] - p2[1];
-	return Math.sqrt(d0 * d0 + d1 * d1);
-}
 
 var Terrain = exports.Terrain = declare({
 	SURROUNDINGS: [
@@ -851,6 +846,7 @@ var Terrain = exports.Terrain = declare({
 	/** The map of the terrain is made of tiles taken from a tileSet. This is the default tile set.
 	*/
 	tileSet: [
+		//{ passable: true, visible: true },
 		{ passable: true, visible: true },
 		{ passable: false, visible: false }
 	],
@@ -950,6 +946,13 @@ var Terrain = exports.Terrain = declare({
 			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
 	},
 
+	
+	distance: function distance(p1, p2) {
+		var d0 = p1[0] - p2[0],
+			d1 = p1[1] - p2[1];
+		return Math.sqrt(d0 * d0 + d1 * d1);
+	},
+
 	// ## Movement ################################################################################
 
 	/** Returns all reachable positions of the given unit.
@@ -1009,10 +1012,10 @@ var Terrain = exports.Terrain = declare({
 	},
 
 	canShoot:function canShoot(shooterUnit, targetUnit){
-		if (shooterUnit.army !== targetUnit.army) {
+		if (shooterUnit.army === targetUnit.army) {
 			return Infinity;
 		}
-		var distance = distance(shooterUnit.position, targetUnit.position);
+		var distance = this.distance(shooterUnit.position, targetUnit.position);
 		if (distance > shooterUnit.maxRange()) {
 			return Infinity;
 		} else {
@@ -1021,10 +1024,12 @@ var Terrain = exports.Terrain = declare({
 			for (var i = 0; i < sight.length; i++) {
 				pos = sight[i];
 				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
-						this.__unitsByPosition__[pos] !== targetUnit) {
+						this.__unitsByPosition__[pos].id !== shooterUnit.id &&
+						this.__unitsByPosition__[pos].id !== targetUnit.id) {
 					return Infinity;
 				}
 			}
+		
 			return distance;
 		}
 	},
@@ -2847,7 +2852,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
 												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
 												//Deberia ir ya deberian estar ordenadas por estos 
-					m.__distance__ = game.terrain.getDistance(shooter.position, target.position);
+					m.__distance__ = game.terrain.distance(shooter.position, target.position);
 					return true;
 				} else {
 					return false;
@@ -2862,7 +2867,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			approaches= moves.filter(function (m) {
 				//range = shooter.model.range
 				 //si ya la calcule para la unidad la deberia usar no la deberia pasar entre turno y turno pero deberia mantenersepor el turno
-				m.__range__ = game.terrain.canShoot(shooter, target, shooter.maxRange(),theGame);
+				m.__range__ = game.terrain.canShoot(shooter, target);
 				return m.__range__ !== Infinity;
 			});
 			//hooter.areaOfSight=areaOfSight;

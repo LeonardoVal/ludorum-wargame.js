@@ -2,11 +2,6 @@
 
 */
 
-function distance(p1, p2) {
-	var d0 = p1[0] - p2[0],
-		d1 = p1[1] - p2[1];
-	return Math.sqrt(d0 * d0 + d1 * d1);
-}
 
 var Terrain = exports.Terrain = declare({
 	SURROUNDINGS: [
@@ -23,6 +18,7 @@ var Terrain = exports.Terrain = declare({
 	/** The map of the terrain is made of tiles taken from a tileSet. This is the default tile set.
 	*/
 	tileSet: [
+		//{ passable: true, visible: true },
 		{ passable: true, visible: true },
 		{ passable: false, visible: false }
 	],
@@ -122,6 +118,13 @@ var Terrain = exports.Terrain = declare({
 			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
 	},
 
+	
+	distance: function distance(p1, p2) {
+		var d0 = p1[0] - p2[0],
+			d1 = p1[1] - p2[1];
+		return Math.sqrt(d0 * d0 + d1 * d1);
+	},
+
 	// ## Movement ################################################################################
 
 	/** Returns all reachable positions of the given unit.
@@ -181,10 +184,10 @@ var Terrain = exports.Terrain = declare({
 	},
 
 	canShoot:function canShoot(shooterUnit, targetUnit){
-		if (shooterUnit.army !== targetUnit.army) {
+		if (shooterUnit.army === targetUnit.army) {
 			return Infinity;
 		}
-		var distance = distance(shooterUnit.position, targetUnit.position);
+		var distance = this.distance(shooterUnit.position, targetUnit.position);
 		if (distance > shooterUnit.maxRange()) {
 			return Infinity;
 		} else {
@@ -193,10 +196,12 @@ var Terrain = exports.Terrain = declare({
 			for (var i = 0; i < sight.length; i++) {
 				pos = sight[i];
 				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
-						this.__unitsByPosition__[pos] !== targetUnit) {
+						this.__unitsByPosition__[pos].id !== shooterUnit.id &&
+						this.__unitsByPosition__[pos].id !== targetUnit.id) {
 					return Infinity;
 				}
 			}
+		
 			return distance;
 		}
 	},
