@@ -1,17 +1,18 @@
 ﻿/** This spec is built with [Karma](https://karma-runner.github.io/1.0/index.html) and
 [Jasmine](https://jasmine.github.io/2.5/introduction).
 */
-define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, p2) { "use strict";
+define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame) { "use strict";
 	describe("DynamicScriptingPlayer", function () {
 		var GrimFuture = ludorum_wargame.GrimFuture,
 			SupportBrothers_Unit = GrimFuture.BattleBrothers.UNITS.SupportBrothers_Unit,
 			BattleBrothers_Unit = GrimFuture.BattleBrothers.UNITS.SupportBrothers_Unit;
 
-/*
+
 		it("dependencies load properly", function () { /////////////////////////////////////////////
-			expect(p2).toBeDefined('p2 did not load properly!');
+			//expect(p2).toBeDefined('p2 did not load properly!');
 		});
-		it("rules work.", function () { ////////////////////////////////////////////////////////////
+		//TODO arreglar esto que no anda
+		xit("rules work.", function () { ////////////////////////////////////////////////////////////
 			var example1 = ludorum_wargame.test.example1(),
 				moves1 = example1.moves().Red,
 				example2 = example1.next({ Red: moves1[0] }),
@@ -30,7 +31,7 @@ define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, 
 				}
 			});
 		}); // it "state handling".
-		it("Con exampleDS1.", function () { ////////////////////////////////////////////////////////////
+		xit("Con exampleDS1.", function () { ////////////////////////////////////////////////////////////
 			var exampleDS1 = ludorum_wargame.test.exampleDS1(),
 				moves1 = exampleDS1.moves().Red,
 				example2 = exampleDS1.next({ Red: moves1[0] }),
@@ -45,7 +46,7 @@ define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, 
 			}
 		}); // it
 
-		it("Con exampleDS2.", function () { ////////////////////////////////////////////////////////////
+		xit("Con exampleDS2.", function () { ////////////////////////////////////////////////////////////
 			var exampleDS2 = ludorum_wargame.test.exampleDS2(),
 				moves1 = exampleDS2.moves().Red,
 				example2 = exampleDS2.next({ Red: moves1[0] }),
@@ -61,7 +62,7 @@ define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, 
 				expect(action instanceof  ludorum_wargame.AssaultAction).toBe(true);
 			}
 		}); // it
-		it("Con exampleDS3.", function () { ////////////////////////////////////////////////////////////
+		xit("Con exampleDS3.", function () { ////////////////////////////////////////////////////////////
 			var exampleDS3 = ludorum_wargame.test.exampleDS3(),
 				moves1 = exampleDS3.moves().Red,
 				example2 = exampleDS3.next({ Red: moves1[0] }),
@@ -80,7 +81,7 @@ define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, 
 			}
 		}); // it
 
-		it("Con exampleDS4.", function () { ////////////////////////////////////////////////////////////
+		xit("Con exampleDS4.", function () { ////////////////////////////////////////////////////////////
 			var exampleDS4 = ludorum_wargame.test.exampleDS4(),
 				moves1 = exampleDS4.moves().Red,
 				example2 = exampleDS4.next({ Red: moves1[0] }),
@@ -95,7 +96,6 @@ define(['creatartis-base', 'ludorum-wargame'], function (base, ludorum_wargame, 
 			}
 		}); // it
 
-	*/
 	}); //// describe "Base definitions".
 
 }); //// define.
