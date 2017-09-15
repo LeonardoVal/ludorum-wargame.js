@@ -177,11 +177,23 @@ var Unit = exports.Unit = declare({
 	getShootActions: function getShootActions(game) {
 		var enemyUnits = game.armies[game.opponent()].units,
 			shooter = this,
-			maxRange = this.maxRange() || 0,
 			ret=enemyUnits.filter(function (target) {
-			return game.terrain.canShoot(shooter, target, maxRange,game)!=Infinity;
+			return game.terrain.canShoot(shooter, target)!=Infinity;
 		}).map(function (target) {
 			return new ShootAction(shooter.id, target.id);
+		});
+		return ret;
+	},
+
+	/**
+	*/
+	getAssaultActions: function getAssaultActions(game) {
+		var enemyUnits = game.armies[game.opponent()].units,
+			assaulter = this,
+			ret=enemyUnits.filter(function (target) {
+			return game.terrain.canShoot(assaulter, target)!=Infinity;
+		}).map(function (target) {
+			return new AssaultAction(assaulter.id, target.id);
 		});
 		return ret;
 	},

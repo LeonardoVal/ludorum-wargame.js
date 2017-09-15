@@ -9,9 +9,9 @@ var GameAction = exports.GameAction = declare({
 	aleatories: function aleatories(game) {
 		return null;
 	},
-	
+
 	execute: base.objects.unimplemented('GameAction', 'execute(game, haps)'),
-	
+
 	unitById: function unitById(game, id) {
 		id = id || this.unitId;
 		var unit = null;
@@ -27,7 +27,7 @@ var GameAction = exports.GameAction = declare({
 		raiseIf(!unit, 'Unit ', id, ' was not found!');
 		return unit;
 	},
-	
+
 	/** The action's `worth` is the value that the action takes after being executed. Zero by default.
 	*/
 	worth: function worth() {
@@ -41,11 +41,11 @@ var ActivateAction = exports.ActivateAction = declare(GameAction, {
 	constructor: function ActivateAction(unitId) {
 		this.unitId = unitId;
 	},
-	
+
 	execute: function execute(game) {
 		this.unitById(game).activate(game);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'ActivateAction',
 		serializer: function serialize_ActivateAction(obj) {
@@ -60,11 +60,11 @@ var EndTurnAction = exports.EndTurnAction = declare(GameAction, {
 	constructor: function EndTurnAction(unitId) {
 		this.unitId = unitId;
 	},
-	
+
 	execute: function execute(game) {
 		this.unitById(game).endTurn(game);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'EndTurnAction',
 		serializer: function serialize_ActivateAction(obj) {
@@ -81,14 +81,14 @@ var MoveAction = exports.MoveAction = declare(GameAction, {
 		this.position = position;
 		this.run = run;
 	},
-	
+
 	/** The execution of a `Move` actions changes the unit's position.
 	*/
 	execute: function execute(game) {
 		//TODO Check the unit can really move to the position.
 		this.unitById(game).move(game, this.position, this.run);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'MoveAction',
 		serializer: function serialize_MoveAction(obj) {
@@ -104,7 +104,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
-	
+
 	aleatories: function aleatories(game) {
 		var shooter = this.unitById(game),
 			target = this.unitById(game, this.targetId),
@@ -120,7 +120,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		var aleatory = new ShootAleatory(shooter.quality, target.defense, attackCount);
 		return { wounds: aleatory };
 	},
-	
+
 	execute: function execute(game, haps) {
 		var wounds = haps.wounds,
 			targetUnit = this.unitById(game, this.targetId);
@@ -132,7 +132,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		}
 		this.unitById(game, this.unitId).endTurn(game);
 	},
-	
+
 	/** Serialization and materialization using Sermat.
 	*/
 	'static __SERMAT__': {
@@ -150,13 +150,13 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
-	
+
 	aleatories: function aleatories(game) {
 		return null;
 	},
-	
+
 	//FIXME falta que targetUnit contraataque
-	execute: function execute(game, haps) { 
+	execute: function execute(game, haps) {
 		var counterWounds = 0;
 		var wounds = haps.wounds;
 		var targetUnit = this.unitById(game, this.targetId);
@@ -176,15 +176,15 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 			this.worth -= unit.cost();
 		}
 		this.worth -= unit.cost()*counterWounds/unit.size(); //FIXME no funciona correctamente con tought
-		
+
 	},
-	
+
 	/** Serialization and materialization using Sermat.
 	*/
 	'static __SERMAT__': {
 		identifier: 'AssaultAction',
 		serializer: function serialize_AssaultAction(obj) {
-			return [unitId, targetId];
+			return [obj.unitId, obj.targetId];
 		}
 	}
 }); // declare AssaultAction
@@ -207,7 +207,7 @@ var rerolls = exports.rerolls = function rerolls(p, ns) {
             r[0] += p2;
         } else {
             rolls(p, n).forEach(function (p3, i) {
-                r[i] += p2 * p3; 
+                r[i] += p2 * p3;
             });
         }
     });
@@ -215,7 +215,7 @@ var rerolls = exports.rerolls = function rerolls(p, ns) {
 };
 
 var addRolls = exports.addRolls = function addRolls(rs1, rs2) {
-	var len1 = rs1.length, 
+	var len1 = rs1.length,
 		len2 = rs2.length;
 	return Iterable.range(len1 + len2 - 1).map(function (i) {
 		return Iterable.range(i + 1).filter(function (j) {
@@ -235,14 +235,14 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 		this.__saveProb__ = Math.max(0, Math.min(1, (6 - targetDefense + 1) / 6));
 		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
 		this.__distribution__ = iterable(rs).map(function (p, v) {
-			return [v, p];			
+			return [v, p];
 		}).toArray();
 	},
 
 	distribution: function distribution() {
 		return iterable(this.__distribution__);
 	},
-	
+
 	value: function value(random) {
 		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
 	},
