@@ -22,17 +22,12 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
 												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
 												//Deberia ir ya deberian estar ordenadas por estos 
-					m.__distance__ = game.terrain.distance(shooter.position, target.position);
+					m.__distance__ = game.terrain.distance(m.position, target.position);
 					return true;
 				} else {
 					return false;
-				}
-			}),// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
-			
-			
-
-			approaches = [];
-
+				}// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
+			}),
 
 			approaches= moves.filter(function (m) {
 				//range = shooter.model.range
@@ -54,9 +49,12 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 											//Esto tambien deberia hacerlo por influencia y menos pasos// si primero o influencia
 				return m1.__distance__ - m2.__distance__;
 			});
+					
 			return game.next(obj(activePlayer, moves[0]), null, update);
 		}
+	
 	},
+	
 	
 	getShots: function getShots(game, actions) {
 		var attack = this;

@@ -4,7 +4,7 @@
 var Wargame = exports.Wargame = declare(ludorum.Game, {
 	name: 'Wargame',
 	players: ['Red', 'Blue'],
-	rounds: 10,
+	rounds:10,
 
 	/** ## Constructor and state handling ##########################################################
 	

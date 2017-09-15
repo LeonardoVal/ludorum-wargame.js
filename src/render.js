@@ -62,6 +62,31 @@ exports.Renderer = declare({
 			});
 		}
 	},
+	renderMoves : function renderMoves(wargame,moves){
+		
+				var renderer = this,
+					canvas = this.canvas,
+					ctx = this.ctx,
+					terrain = wargame.terrain,
+					world = terrain.world;
+				this.render(wargame);
+				ctx.save();
+				ctx.scale(canvas.width / terrain.WorldWidth, canvas.height / terrain.WorldHeight);
+		
+				for (var army in moves){
+					moves[army].forEach(function (move){
+						if (move.constructor==MoveAction){
+							ctx.save();
+							ctx.fillStyle = '#32CD32';
+							ctx.beginPath();
+							ctx.arc(move.position[0], move.position[1],1, 0, 2 * Math.PI);
+							ctx.fill();
+							ctx.restore();
+						}
+					});
+				}
+				ctx.restore();
+		},
 
 	drawSquare: function drawSquare(x, y, height, width, color){
 		var ctx = this.ctx;

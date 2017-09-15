@@ -676,7 +676,7 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 var Wargame = exports.Wargame = declare(ludorum.Game, {
 	name: 'Wargame',
 	players: ['Red', 'Blue'],
-	rounds: 10,
+	rounds:10,
 
 	/** ## Constructor and state handling ##########################################################
 	
@@ -864,9 +864,9 @@ var Terrain = exports.Terrain = declare({
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-		"000000000000001000000001111111100000000000000000",
 		"000000000000000000000000000000000000000000000000",
-		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"111111110011111111111001111111111111111111111100",
@@ -877,16 +877,16 @@ var Terrain = exports.Terrain = declare({
 		"100110000111111111111001111111111111111111111100",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000001111111100000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000000000000001000000000000000000000000000000000",
-		"000001111111111111111111111100000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-		"111111000011111111111001111111111111111111111100",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
@@ -948,8 +948,8 @@ var Terrain = exports.Terrain = declare({
 
 	
 	distance: function distance(p1, p2) {
-		var d0 = p1[0] - p2[0],
-			d1 = p1[1] - p2[1];
+		var d0 = Math.abs(p1[0] - p2[0]),
+			d1 = Math.abs(p1[1] - p2[1]);
 		return Math.sqrt(d0 * d0 + d1 * d1);
 	},
 
@@ -958,6 +958,9 @@ var Terrain = exports.Terrain = declare({
 	/** Returns all reachable positions of the given unit.
 	*/
 	reachablePositions: function reachablePositions(unit, range) {
+
+		performance.mark("reachablePositions-start");
+		
 		range = range || 12;
 		var visited = {},
 			pending = [unit.position],
@@ -980,6 +983,12 @@ var Terrain = exports.Terrain = declare({
 				pending.push(pos2);
 			}
 		}
+		performance.mark("reachablePositions-end");
+		performance.measure(
+			"reachablePositions",
+			"reachablePositions-start",
+			"reachablePositions-end"
+		  );
 		return visited;
 	},
 
@@ -1369,7 +1378,7 @@ var terrain = new Terrain([
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 2, timeCap: 500 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
@@ -1377,61 +1386,48 @@ var terrain = new Terrain([
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
-          terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
+          window.RENDERER.render(game.concreteGame);
 
 		});
 		match.events.on('move', function (game, moves, match) {
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
-			var terrain=  next.concreteGame.terrain;
-          terrain.loadUnitsBut(next.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
+      var terrain=  next.concreteGame.terrain;
+      window.RENDERER.render(next.concreteGame);
 		});
 		match.run().then(function (m) {
-			console.log(m.result());
+      console.log("randomAbstractedGame");
+      console.log(m.result());
+      
 		});
   },
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 5, timeCap: 2000 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
 			game = new AbstractedWargame(this.example1());
-    window.match = new ludorum.Match(game, players);
-    /*
-		match.events.on('begin', function (game, match) {
-     // game.concreteGame.terrain.addArmiesToWorld(game.concreteGame);
-      //window.RENDERER.renderGrid(game.concreteGame.terrain.terrain);
-         var terrain=  game.concreteGame.terrain;
-          terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
-
-
-    });
-    */
-		match.events.on('move', function (game, moves, match) {
-			console.log(Sermat.ser(moves));
-    });
-    /*
-		match.events.on('next', function (game, next, match) {
-     // next.concreteGame.terrain.addArmiesToWorld(next.concreteGame);
-      //window.RENDERER.renderGrid(next.concreteGame.terrain.terrain);
-      var terrain=  next.concreteGame.terrain;
-          terrain.loadUnitsBut(next.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
-
-    });
-    */
-		match.run().then(function (m) {
-
-      console.log(m.result());
-      alert(m.result());
-		});
-	},
+      window.match = new ludorum.Match(game, players);
+      match.events.on('begin', function (game, match) {
+        var terrain=  game.concreteGame.terrain;
+            window.RENDERER.render(game.concreteGame);
+  
+      });
+      match.events.on('move', function (game, moves, match) {
+        console.log(Sermat.ser(moves));
+      });
+      match.events.on('next', function (game, next, match) {
+        var terrain=  next.concreteGame.terrain;
+        window.RENDERER.render(next.concreteGame);
+      });
+      match.run().then(function (m) {
+        console.log("randomAbstractedGameDiscrete");
+        console.log(m.result());
+      });
+    },
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
@@ -2622,6 +2618,31 @@ exports.Renderer = declare({
 			});
 		}
 	},
+	renderMoves : function renderMoves(wargame,moves){
+		
+				var renderer = this,
+					canvas = this.canvas,
+					ctx = this.ctx,
+					terrain = wargame.terrain,
+					world = terrain.world;
+				this.render(wargame);
+				ctx.save();
+				ctx.scale(canvas.width / terrain.WorldWidth, canvas.height / terrain.WorldHeight);
+		
+				for (var army in moves){
+					moves[army].forEach(function (move){
+						if (move.constructor==MoveAction){
+							ctx.save();
+							ctx.fillStyle = '#32CD32';
+							ctx.beginPath();
+							ctx.arc(move.position[0], move.position[1],1, 0, 2 * Math.PI);
+							ctx.fill();
+							ctx.restore();
+						}
+					});
+				}
+				ctx.restore();
+		},
 
 	drawSquare: function drawSquare(x, y, height, width, color){
 		var ctx = this.ctx;
@@ -2852,17 +2873,12 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
 												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
 												//Deberia ir ya deberian estar ordenadas por estos 
-					m.__distance__ = game.terrain.distance(shooter.position, target.position);
+					m.__distance__ = game.terrain.distance(m.position, target.position);
 					return true;
 				} else {
 					return false;
-				}
-			}),// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
-			
-			
-
-			approaches = [];
-
+				}// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
+			}),
 
 			approaches= moves.filter(function (m) {
 				//range = shooter.model.range
@@ -2884,9 +2900,12 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 											//Esto tambien deberia hacerlo por influencia y menos pasos// si primero o influencia
 				return m1.__distance__ - m2.__distance__;
 			});
+					
 			return game.next(obj(activePlayer, moves[0]), null, update);
 		}
+	
 	},
+	
 	
 	getShots: function getShots(game, actions) {
 		var attack = this;

@@ -183,7 +183,7 @@ var terrain = new Terrain([
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 2, timeCap: 500 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
@@ -191,61 +191,48 @@ var terrain = new Terrain([
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
-          terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
+          window.RENDERER.render(game.concreteGame);
 
 		});
 		match.events.on('move', function (game, moves, match) {
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
-			var terrain=  next.concreteGame.terrain;
-          terrain.loadUnitsBut(next.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
+      var terrain=  next.concreteGame.terrain;
+      window.RENDERER.render(next.concreteGame);
 		});
 		match.run().then(function (m) {
-			console.log(m.result());
+      console.log("randomAbstractedGame");
+      console.log(m.result());
+      
 		});
   },
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 5, timeCap: 2000 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
 			game = new AbstractedWargame(this.example1());
-    window.match = new ludorum.Match(game, players);
-    /*
-		match.events.on('begin', function (game, match) {
-     // game.concreteGame.terrain.addArmiesToWorld(game.concreteGame);
-      //window.RENDERER.renderGrid(game.concreteGame.terrain.terrain);
-         var terrain=  game.concreteGame.terrain;
-          terrain.loadUnitsBut(game.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
-
-
-    });
-    */
-		match.events.on('move', function (game, moves, match) {
-			console.log(Sermat.ser(moves));
-    });
-    /*
-		match.events.on('next', function (game, next, match) {
-     // next.concreteGame.terrain.addArmiesToWorld(next.concreteGame);
-      //window.RENDERER.renderGrid(next.concreteGame.terrain.terrain);
-      var terrain=  next.concreteGame.terrain;
-          terrain.loadUnitsBut(next.concreteGame,terrain.terrain);
-          window.RENDERER.renderGrid(terrain.terrain);
-
-    });
-    */
-		match.run().then(function (m) {
-
-      console.log(m.result());
-      alert(m.result());
-		});
-	},
+      window.match = new ludorum.Match(game, players);
+      match.events.on('begin', function (game, match) {
+        var terrain=  game.concreteGame.terrain;
+            window.RENDERER.render(game.concreteGame);
+  
+      });
+      match.events.on('move', function (game, moves, match) {
+        console.log(Sermat.ser(moves));
+      });
+      match.events.on('next', function (game, next, match) {
+        var terrain=  next.concreteGame.terrain;
+        window.RENDERER.render(next.concreteGame);
+      });
+      match.run().then(function (m) {
+        console.log("randomAbstractedGameDiscrete");
+        console.log(m.result());
+      });
+    },
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
