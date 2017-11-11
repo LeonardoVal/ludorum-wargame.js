@@ -118,7 +118,6 @@ var Terrain = exports.Terrain = declare({
 			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
 	},
 
-	
 	distance: function distance(p1, p2) {
 		var d0 = Math.abs(p1[0] - p2[0]),
 			d1 = Math.abs(p1[1] - p2[1]);
@@ -132,7 +131,7 @@ var Terrain = exports.Terrain = declare({
 	reachablePositions: function reachablePositions(unit, range) {
 
 		performance.mark("reachablePositions-start");
-		
+
 		range = range || 12;
 		var visited = {},
 			pending = [unit.position],
@@ -162,6 +161,44 @@ var Terrain = exports.Terrain = declare({
 			"reachablePositions-end"
 		  );
 		return visited;
+	},
+
+	/**
+	*/
+	canReach: function canReach(unit, destination, range) {
+		range = range || 12;
+		var terrain = this,
+			origin = unit.position,
+			visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[origin] = 0;
+		heuristic[origin] = this.distance(origin, destination);
+
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			if (pos[0] === destination[0] && pos[1] === destination[1]) {
+				return true;
+			}
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+				heuristic[pos2] = this.distance(pos2, destination);
+				pending.push(pos2);
+			}
+			pending.sort(function (p1, p2) {
+				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
+			});
+		}
+		return false;
 	},
 
 	// ## Visibility ##############################################################################
@@ -210,7 +247,7 @@ var Terrain = exports.Terrain = declare({
 					return Infinity;
 				}
 			}
-		
+
 			return distance;
 		}
 	},

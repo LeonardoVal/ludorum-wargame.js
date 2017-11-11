@@ -4,7 +4,7 @@
 			} else if (typeof exports === 'object' && module.exports) {
 				module.exports = init(require("creatartis-base"),require("sermat"),require("ludorum")); // CommonJS module.
 			} else {
-				this.Sermat = init(this.base,this.Sermat,this.ludorum); // Browser.
+				this["ludorum-wargame"] = init(this.base,this.Sermat,this.ludorum); // Browser.
 			}
 		}).call(this,/** Module wrapper and layout.
 */
@@ -209,11 +209,23 @@ var Unit = exports.Unit = declare({
 	getShootActions: function getShootActions(game) {
 		var enemyUnits = game.armies[game.opponent()].units,
 			shooter = this,
-			maxRange = this.maxRange() || 0,
 			ret=enemyUnits.filter(function (target) {
-			return game.terrain.canShoot(shooter, target, maxRange,game)!=Infinity;
+			return game.terrain.canShoot(shooter, target)!=Infinity;
 		}).map(function (target) {
 			return new ShootAction(shooter.id, target.id);
+		});
+		return ret;
+	},
+
+	/**
+	*/
+	getAssaultActions: function getAssaultActions(game) {
+		var enemyUnits = game.armies[game.opponent()].units,
+			assaulter = this,
+			ret=enemyUnits.filter(function (target) {
+			return game.terrain.canShoot(assaulter, target)!=Infinity;
+		}).map(function (target) {
+			return new AssaultAction(assaulter.id, target.id);
 		});
 		return ret;
 	},
@@ -424,9 +436,9 @@ var GameAction = exports.GameAction = declare({
 	aleatories: function aleatories(game) {
 		return null;
 	},
-	
+
 	execute: base.objects.unimplemented('GameAction', 'execute(game, haps)'),
-	
+
 	unitById: function unitById(game, id) {
 		id = id || this.unitId;
 		var unit = null;
@@ -442,7 +454,7 @@ var GameAction = exports.GameAction = declare({
 		raiseIf(!unit, 'Unit ', id, ' was not found!');
 		return unit;
 	},
-	
+
 	/** The action's `worth` is the value that the action takes after being executed. Zero by default.
 	*/
 	worth: function worth() {
@@ -456,11 +468,11 @@ var ActivateAction = exports.ActivateAction = declare(GameAction, {
 	constructor: function ActivateAction(unitId) {
 		this.unitId = unitId;
 	},
-	
+
 	execute: function execute(game) {
 		this.unitById(game).activate(game);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'ActivateAction',
 		serializer: function serialize_ActivateAction(obj) {
@@ -475,11 +487,11 @@ var EndTurnAction = exports.EndTurnAction = declare(GameAction, {
 	constructor: function EndTurnAction(unitId) {
 		this.unitId = unitId;
 	},
-	
+
 	execute: function execute(game) {
 		this.unitById(game).endTurn(game);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'EndTurnAction',
 		serializer: function serialize_ActivateAction(obj) {
@@ -496,14 +508,14 @@ var MoveAction = exports.MoveAction = declare(GameAction, {
 		this.position = position;
 		this.run = run;
 	},
-	
+
 	/** The execution of a `Move` actions changes the unit's position.
 	*/
 	execute: function execute(game) {
 		//TODO Check the unit can really move to the position.
 		this.unitById(game).move(game, this.position, this.run);
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'MoveAction',
 		serializer: function serialize_MoveAction(obj) {
@@ -519,7 +531,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
-	
+
 	aleatories: function aleatories(game) {
 		var shooter = this.unitById(game),
 			target = this.unitById(game, this.targetId),
@@ -535,7 +547,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		var aleatory = new ShootAleatory(shooter.quality, target.defense, attackCount);
 		return { wounds: aleatory };
 	},
-	
+
 	execute: function execute(game, haps) {
 		var wounds = haps.wounds,
 			targetUnit = this.unitById(game, this.targetId);
@@ -547,7 +559,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 		}
 		this.unitById(game, this.unitId).endTurn(game);
 	},
-	
+
 	/** Serialization and materialization using Sermat.
 	*/
 	'static __SERMAT__': {
@@ -565,13 +577,13 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
-	
+
 	aleatories: function aleatories(game) {
 		return null;
 	},
-	
+
 	//FIXME falta que targetUnit contraataque
-	execute: function execute(game, haps) { 
+	execute: function execute(game, haps) {
 		var counterWounds = 0;
 		var wounds = haps.wounds;
 		var targetUnit = this.unitById(game, this.targetId);
@@ -591,15 +603,15 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 			this.worth -= unit.cost();
 		}
 		this.worth -= unit.cost()*counterWounds/unit.size(); //FIXME no funciona correctamente con tought
-		
+
 	},
-	
+
 	/** Serialization and materialization using Sermat.
 	*/
 	'static __SERMAT__': {
 		identifier: 'AssaultAction',
 		serializer: function serialize_AssaultAction(obj) {
-			return [unitId, targetId];
+			return [obj.unitId, obj.targetId];
 		}
 	}
 }); // declare AssaultAction
@@ -622,7 +634,7 @@ var rerolls = exports.rerolls = function rerolls(p, ns) {
             r[0] += p2;
         } else {
             rolls(p, n).forEach(function (p3, i) {
-                r[i] += p2 * p3; 
+                r[i] += p2 * p3;
             });
         }
     });
@@ -630,7 +642,7 @@ var rerolls = exports.rerolls = function rerolls(p, ns) {
 };
 
 var addRolls = exports.addRolls = function addRolls(rs1, rs2) {
-	var len1 = rs1.length, 
+	var len1 = rs1.length,
 		len2 = rs2.length;
 	return Iterable.range(len1 + len2 - 1).map(function (i) {
 		return Iterable.range(i + 1).filter(function (j) {
@@ -650,14 +662,14 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 		this.__saveProb__ = Math.max(0, Math.min(1, (6 - targetDefense + 1) / 6));
 		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
 		this.__distribution__ = iterable(rs).map(function (p, v) {
-			return [v, p];			
+			return [v, p];
 		}).toArray();
 	},
 
 	distribution: function distribution() {
 		return iterable(this.__distribution__);
 	},
-	
+
 	value: function value(random) {
 		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
 	},
@@ -670,8 +682,9 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 	}
 });
 
+
 /** # Wargame
- * 
+ *
  */
 var Wargame = exports.Wargame = declare(ludorum.Game, {
 	name: 'Wargame',
@@ -679,7 +692,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 	rounds:10,
 
 	/** ## Constructor and state handling ##########################################################
-	
+
 	The constructor takes the following parameters:
 	*/
 	constructor: function Wargame(params) {
@@ -691,7 +704,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 			/** + `terrain`: The terrain on which the game is being played.
 			*/
 			.object('terrain')
-			/** + `round`: The current round number. A round is completed after all players have 
+			/** + `round`: The current round number. A round is completed after all players have
 			finished their turns.
 			*/
 			.integer('round', { coerce: true, defaultValue: -1 })
@@ -708,7 +721,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 			this.nextTurn();
 		}
 	},
-	
+
 	/** Advance the game to the next (or the first) turn.
 	*/
 	nextTurn: function nextTurn() {
@@ -718,11 +731,11 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 			this.activePlayers = [this.players[i]]; //FIXME Use Game.activatePlayer.
 			if (!i) {
 				this.nextRound();
-			} 
+			}
 		}
 		return this;
 	},
-	
+
 	nextRound: function nextRound() {
 		this.round++;
 		var armies = this.armies;
@@ -731,28 +744,28 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 		return this;
 	},
-	
+
 	// ## Game ending and scores ###################################################################
-	
+
 	/** An array with the minimum and maximum possible results.
 	 */
 	//resultBounds: [0,750], //TODO Calcular los topes reales.
-	
+
 	/**
 	 * A medida que se destruye por completo a una unidad enemiga, el score incrementa segun el coste de dicha unidad eliminada.
 	 * Diccionario con claves los jugadores y valor su score. Ejemplo {One: 0, Two: 0};
 	 */
 	scores: function scores() {
 		return iterable(this.armies).mapApply(function (name, army) {
-			return [name, army.worth()];			
+			return [name, army.worth()];
 		}).toObject();
 	},
-	
+
 	/**
-	 * returns an object with the game's result if the game is final. 
+	 * returns an object with the game's result if the game is final.
 	 */
 	result: function result() {
-		var player1 = this.players[0], 
+		var player1 = this.players[0],
 			player2 = this.players[1];
 		if (this.armies[player1].isEliminated(this) ||
 				this.armies[player2].isEliminated(this) ||
@@ -763,20 +776,20 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 		return null; // Game continues.
 	},
-	
+
 	/** The definitions of the metagame have to be synchronized with the current game state before
 	any calculation is performed.
 	*/
 	synchronizeMetagame: function synchronizeMetagame() {
 		this.terrain.resetTerrain(this);
 	},
-	
+
 	/** An `activeUnit` is a unit that can take actions in this game state.
 	*/
 	activeUnit: function activeUnit() {
 		return this.__activeUnit__;
 	},
-	
+
 	/** The `moves` method calculates the active player's actions for this game state.
 	*/
 	moves: function moves() {
@@ -787,7 +800,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 		return null;
 	},
-	
+
 	/** Executes the given action on this game state. If the action has aleatories, a contingent
 	game state is returned.
 	*/
@@ -800,20 +813,20 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		if (aleatories && !haps) {
 			return new ludorum.Contingent(this, actions, aleatories, update);
 		} else {
-			var nextGame = update ? this : Sermat.sermat(this); //FIXME Sermat.clone
+			var nextGame = update ? this : Sermat.clone(this);
 			action.execute(nextGame, haps);
 			return nextGame.nextTurn();
 		}
 	},
-	
+
 	// ## Serialization ############################################################################
-	
+
 	'static __SERMAT__': {
 		serializer: function serialize_Wargame(obj) {
 			var args = {
-					armies: obj.armies, 
+					armies: obj.armies,
 					terrain: obj.terrain,
-					round: obj.round, 
+					round: obj.round,
 					rounds: obj.rounds
 				};
 			if (obj.__activeUnit__) {
@@ -823,7 +836,6 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 	}
 }); // declare Wargame
-
 
 
 /** # Terrain
@@ -946,7 +958,6 @@ var Terrain = exports.Terrain = declare({
 			(!checkUnits || !this.__unitsByPosition__.hasOwnProperty(position)));
 	},
 
-	
 	distance: function distance(p1, p2) {
 		var d0 = Math.abs(p1[0] - p2[0]),
 			d1 = Math.abs(p1[1] - p2[1]);
@@ -960,7 +971,7 @@ var Terrain = exports.Terrain = declare({
 	reachablePositions: function reachablePositions(unit, range) {
 
 		performance.mark("reachablePositions-start");
-		
+
 		range = range || 12;
 		var visited = {},
 			pending = [unit.position],
@@ -990,6 +1001,44 @@ var Terrain = exports.Terrain = declare({
 			"reachablePositions-end"
 		  );
 		return visited;
+	},
+
+	/**
+	*/
+	canReach: function canReach(unit, destination, range) {
+		range = range || 12;
+		var terrain = this,
+			origin = unit.position,
+			visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[origin] = 0;
+		heuristic[origin] = this.distance(origin, destination);
+
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			if (pos[0] === destination[0] && pos[1] === destination[1]) {
+				return true;
+			}
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+				heuristic[pos2] = this.distance(pos2, destination);
+				pending.push(pos2);
+			}
+			pending.sort(function (p1, p2) {
+				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
+			});
+		}
+		return false;
 	},
 
 	// ## Visibility ##############################################################################
@@ -1038,7 +1087,7 @@ var Terrain = exports.Terrain = declare({
 					return Infinity;
 				}
 			}
-		
+
 			return distance;
 		}
 	},
@@ -2852,7 +2901,7 @@ var _interpolateColor = function(color1, color2, factor) {
 /** # AbstractedWargame
 
 An astracted wargame provides a strategic level by hiding part of the complexity of the wargame. The
-players' actions are simplified, and the number of plies is reduced. One ply of the abstracted 
+players' actions are simplified, and the number of plies is reduced. One ply of the abstracted
 wargame may include many plies of the concrete game.
  */
 var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, {
@@ -2860,19 +2909,18 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
-	
+
 	executeMovement: function executeMovement(game, actions, update) {
 		var activePlayer = game.activePlayer(),
 			shooter = this.unitById(game, this.unitId),
 			target = this.unitById(game, this.targetId),
-			theGame=game,
 			moves = actions.filter(function (m) {
 				if (m instanceof MoveAction) {	//Desicion basada en influencia decidiendo si moverme o moverme para atacar //puede romper los movimientos
 												//
-												// Me da los movimientos en base a distancia directa, 
+												// Me da los movimientos en base a distancia directa,
 												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
 												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
-												//Deberia ir ya deberian estar ordenadas por estos 
+												//Deberia ir ya deberian estar ordenadas por estos
 					m.__distance__ = game.terrain.distance(m.position, target.position);
 					return true;
 				} else {
@@ -2888,7 +2936,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			});
 			//hooter.areaOfSight=areaOfSight;
 		//	console.log("moves"+moves);
-			
+
 		//	console.log("ap"+approaches);
 		if (approaches.length > 0) {
 			approaches.sort(function (m1, m2) {//Sort por influencia tambien
@@ -2896,17 +2944,17 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			});
 			return game.next(obj(activePlayer, approaches[0]), null, update);
 		} else {
-			moves.sort(function (m1, m2) { //Si no hay disparo me muevo 	
+			moves.sort(function (m1, m2) { //Si no hay disparo me muevo
 											//Esto tambien deberia hacerlo por influencia y menos pasos// si primero o influencia
 				return m1.__distance__ - m2.__distance__;
 			});
-					
+
 			return game.next(obj(activePlayer, moves[0]), null, update);
 		}
-	
+
 	},
-	
-	
+
+
 	getShots: function getShots(game, actions) {
 		var attack = this;
 		actions = actions || game.moves()[game.activePlayer()];
@@ -2914,30 +2962,34 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			return m instanceof ShootAction && m.targetId === attack.targetId;
 		});
 	},
-	
+
 	execute: function execute(abstractedGame, update) {
-		var attack = this,
-			g = abstractedGame.concreteGame,
+		var g = abstractedGame.concreteGame,
+			attacker = this.unitById(g, this.unitId),
+			target = this.unitById(g, this.targetId),
 			activePlayer = g.activePlayer();
-		g = g.next(obj(activePlayer, new ActivateAction(attack.unitId)), null, update); // Activate the unit.
-		var actions = g.moves()[activePlayer],
+		// First activate the abstract action's unit.
+		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
+		var //actions = g.moves()[activePlayer],
+			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
-		if (shots.length < 1) {
+		if (!canShoot) {
+			//FIXME Do not use generated moves, generate them.
 			g = this.executeMovement(g, actions, update);
 			if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-				shots = this.getShots(g);
+				canShoot = g.terrain.canShoot(shooter, target);
 			}
-		} 
-		if (shots.length > 0) {
-			abstractedGame.concreteGame = g.next(obj(activePlayer, shots[0]), null, update).randomNext();
-		} else if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-			abstractedGame.concreteGame = g.next(obj(activePlayer, new EndTurnAction(attack.unitId)), null, update);
-		} else {
-			abstractedGame.concreteGame = g;
 		}
+		if (canShoot) {
+			g = g.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
+		}
+		if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
+			g = g.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
+		}
+		abstractedGame.concreteGame = g;
 		return abstractedGame;
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'StrategicAttackAction',
 		serializer: function serialize_StrategicAttackAction(obj) {
@@ -2945,9 +2997,9 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 	}
 }); // declare StrategicAttackAction
- 
+
 /**TODO
-*/ 
+*/
 var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 
 	/**
@@ -2957,16 +3009,16 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
 	},
-	
+
 	/**
 	*/
-	result: function result() {	
+	result: function result() {
 		return this.concreteGame.result();
 	},
-	
+
 	/**
 	*/
-    moves: function moves() {
+	moves: function moves() {
 		if (this.result()) {
 			return null;
 		}
@@ -2985,18 +3037,18 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		}).toArray();
 		return r;
 	},
-	
+
 	/**
 	*/
 	next: function next(actions, haps, update) {
-		var nextGame = update ? this : Sermat.sermat(this), //FIXME Sermat.clone
+		var nextGame = update ? this : Sermat.clone(this),
 			activePlayer = this.activePlayer(),
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
 		return nextGame;
 	},
-	
+
 	'static __SERMAT__': {
 		identifier: 'AbstractedWargame',
 		serializer: function serialize_AbstractedWargame(obj) {
@@ -3004,7 +3056,6 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		}
 	}
 }); // declare AbstractedWargame
-
 
 
 /** See __prologue__.js
