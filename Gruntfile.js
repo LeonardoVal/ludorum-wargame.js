@@ -16,10 +16,10 @@ module.exports = function (grunt) {
 				'strategic',
 			'__epilogue__'],
 		deps: [
-			{ id: 'creatartis-base', name: 'base' },
+			{ id: 'creatartis-base', name: 'base'},
 			{ id: 'sermat', name: 'Sermat',
-				path: 'node_modules/sermat/build/sermat-umd.js' },
-			{ id: 'ludorum' }
+				path: 'node_modules/sermat/build/sermat-umd-min.js' },
+			{ id: 'ludorum', name: 'ludorum'}
 		],
 		docs: false
 	});

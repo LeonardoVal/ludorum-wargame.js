@@ -5,12 +5,12 @@
 	"version": "0.0.1",
 	"license": "MIT",
 	"dependencies": {
-		"ludorum": "~0.2.1-alpha",
+		"ludorum": "~0.2.0",
 		"creatartis-base": "~0.1.7",
-		"sermat": "~0.0.9"
+		"sermat": "~0.0.8"
 	},
 	"devDependencies": {
 		"requirejs": "~2.2.0",
-		"creatartis-grunt": "~0.0.8"
+		"creatartis-grunt": "~0.0.10"
 	}
 }
