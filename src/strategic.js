@@ -70,7 +70,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			activePlayer = g.activePlayer();
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
-		var //actions = g.moves()[activePlayer],
+		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
 		if (!canShoot) {
@@ -82,10 +82,15 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 		if (canShoot) {
 			g = g.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
+			if (g.isContingent) {
+				g = g.randomNext();
+			}
 		}
 		if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
 			g = g.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
 		}
+		raiseIf(!(g instanceof Wargame), "Executing action ", this, 
+			" did not yield a Wargame instance!");
 		abstractedGame.concreteGame = g;
 		return abstractedGame;
 	},
@@ -95,6 +100,10 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		serializer: function serialize_StrategicAttackAction(obj) {
 			return [obj.unitId, obj.targetId];
 		}
+	},
+
+	toString: function toString() {
+		return Sermat.ser(this);
 	}
 }); // declare StrategicAttackAction
 
@@ -105,6 +114,7 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	/**
 	*/
 	constructor: function AbstractedWargame(wargame) {
+		raiseIf(!(wargame instanceof Wargame), "Invalid concrete wargame ", wargame, "!");
 		this.players = wargame.players;
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
