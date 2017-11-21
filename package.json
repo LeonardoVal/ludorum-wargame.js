@@ -11,6 +11,7 @@
 	},
 	"devDependencies": {
 		"requirejs": "~2.2.0",
-		"creatartis-grunt": "~0.0.11"
+		"creatartis-grunt": "~0.0.11",
+		"capataz": "0.1.7-beta"
 	}
 }
