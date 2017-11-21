@@ -12,7 +12,7 @@ a { color: black; text-decoration: none; }
 #reference tr td:nth-child(1) a { color: white; }
 canvas { border: 1px solid black; }
 	</style>
-	<script src="lib/require.js"></script>
+	<script src="../node_modules/requirejs/require.js"></script>
 </head><body onload="main();">
 	<h1><tt>ludorum-wargame</tt> tester</h1>
 	<p>Open your browser Javascript console. In Windows use: Ctrl+Shift+J in Chrome, Ctrl+Shift+K in Firefox, F12 in Internet Explorer, Ctrl+Shift+I in Opera.</p>
@@ -48,29 +48,18 @@ canvas { border: 1px solid black; }
 	</tr>
 </table>
 	<canvas width="500" height="500" id="wargame-canvas"></canvas>
-	<script type="text/javascript"> "use strict";
-function main() {
-	require.config({
-		paths: {
-			"ludorum-wargame": "lib/ludorum-wargame",
-			"ludorum": "lib/ludorum",
-			"creatartis-base": "lib/creatartis-base.min",
-			"sermat": "lib/sermat-umd"
-		}
-	});
-	require(['ludorum-wargame', 'ludorum', 'creatartis-base', 'sermat'],
+	<script type="text/javascript">
+function main() { "use strict";
+	console.log("Initializing...");
+	require(['require-config'], function (init) {
+		init(['ludorum-wargame', 'ludorum', 'creatartis-base', 'sermat'],
 		function (ludorum_wargame, ludorum, base, Sermat) {
-			window.ludorum_wargame = ludorum_wargame;
-			window.ludorum = ludorum;
-			window.base = base;
-			window.Sermat = Sermat;
-
 			window.RENDERER = new ludorum_wargame.Renderer();
 			Sermat.modifiers.mode = Sermat.BINDING_MODE;
 		}, function (error) {
 			throw error;
 		});
-
+	});
 	Array.prototype.slice.call(document.querySelectorAll('#reference tr td a')).forEach(function (jsLink) {
 		var label, code;
 		if (jsLink.href == "javascript:") {
