@@ -67,11 +67,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  return a list of actions is used.
  */
  decision: function decision(game, player) {
-   console.log("decision");
-   console.log("game");
-   console.log(game);
-   console.log("player");
-   console.log(player);
    game.synchronizeMetagame();
    var rule, actions;
    //[playerArmy, playerUnits, enemyArmy, enemyUnits]
@@ -152,7 +147,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
    return this;
  },
  attachToMatch: function attachToMatch(game,match){
-   //console.log(game);
    var player = this,
      round = 0,
      roundActions = [],
@@ -187,11 +181,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  the rules of the actions executed by the player in the round.
   */
  adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
-     console.log("ajustar pesos");
-     console.log("game");
-     console.log(game);
-     console.log("player");
-     console.log(player);
      //reglas aplicadas esta ronda
      var reglasAplicadas = [];
      roundActions.forEach(function (ra){
@@ -260,11 +249,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  of opponent's eliminated models and units minus own eliminated models and units.
   */
  gameWorth: function gameWorth(game, player) {
-   console.log("gameWorth");
-   console.log("game");
-   console.log(game);
-   console.log("player");
-   console.log(player);
    var worth = 0;
    var cost = 0;
    var deadModels = 0;
@@ -310,7 +294,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 //accion basica move. puede solo moverse, o moverse y disparar
  move: function move(unitX,moveAction,shootUnitY){
-   //console.log(moveAction.position);
    if (shootUnitY){
      //el shoot ya tiene EndTurnAction incorporado, si solo se mueve hay q agregarlo
      return [new ActivateAction(unitX.id),moveAction,new ShootAction(unitX.id,shootUnitY.id)];
@@ -2904,30 +2887,6 @@ rule_3T: playerRule(3, function rule_3T(game, player){
  })
 
 }); // declare DynamicScriptingPlayer
-
-
-
-
-
-
-
-
-
-
-
-
-
-//##################################################################
-/*
-
-
-function attackTeamCanWoundALot(unitX,unitX2,unitY){
- return bestAttacksResult(unitX,unitX2,unitY)>75;
- //bestAttackTeamResult: unitX ataca a unitY, luego unitX2 (aun no activada) ataca a unitY, se mide el maximo daño que pueden hacer
-}
-
-//raiseIf(true, 'range ' + range);
-*/
 
 
 
