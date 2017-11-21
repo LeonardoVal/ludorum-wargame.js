@@ -67,6 +67,11 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  return a list of actions is used.
  */
  decision: function decision(game, player) {
+   console.log("decision");
+   console.log("game");
+   console.log(game);
+   console.log("player");
+   console.log(player);
    game.synchronizeMetagame();
    var rule, actions;
    //[playerArmy, playerUnits, enemyArmy, enemyUnits]
@@ -183,6 +188,10 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
   */
  adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
      console.log("ajustar pesos");
+     console.log("game");
+     console.log(game);
+     console.log("player");
+     console.log(player);
      //reglas aplicadas esta ronda
      var reglasAplicadas = [];
      roundActions.forEach(function (ra){
@@ -246,42 +255,16 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
       }
     }
  },
-     /*
-     var updateRules = [];
-     roundActions.forEach(function (action) {
-       var name = action.__rule__[0].name;
-       if (updateRules.indexOf(name) < 0){
-         updateRules.push(action);
-       }
-     });
-     console.log("verificar la correcta actualizacion de pesos");
-     console.log("updateRules");
-     //actualizo los pesos en las reglas del DynamicScriptingPlayer
-     for (var i=0; i<updateRules.length; i++){
-       console.log(updateRules[i].__rule__[0].name);
-       for (var j=0; j<this.rules.length; j++){
-         if (this.rules[j][0].name === updateRules[i].__rule__[0].name){
-           this.rules[j][1] = updateRules[i].__rule__[1];
-           //console.log("this.rules[j][0].name");
-           //console.log(this.rules[j][0].name);
-           //console.log("updateRules[i].__rule__[0].name");
-           //console.log(updateRules[i].__rule__[0].name);
-           //console.log("this.rules[j][1]");
-           //console.log(this.rules[j][1]);
-         }
-       }
-     }
-    // this.sortRules();
-  // }
-
-*/
-
-
 
  /** Calculates the worth of a game state from the point of view of the player. This is the cost
  of opponent's eliminated models and units minus own eliminated models and units.
   */
  gameWorth: function gameWorth(game, player) {
+   console.log("gameWorth");
+   console.log("game");
+   console.log(game);
+   console.log("player");
+   console.log(player);
    var worth = 0;
    var cost = 0;
    var deadModels = 0;
@@ -2040,15 +2023,7 @@ disparar a la mas facil de matar*/
    }
   return null;
  }),
- /*
- /* FIXME: falta mejorResuladoAtaque(unitX y unitX2 a unidadY)
- si ronda = 1 y willWoundShooting(game,shooter,target) y
- mejorResuladoAtaque(unitX y unitX2 a unidadY) > 75% y fuerza(unidadY) =
- max entonces dispara(unitX a unidadY)
- -----
- si ronda = 2 y willWoundShooting(game,shooter,target) y
- mejorResuladoAtaque(unitX y unitX2 a unidadY) > 75% y eliminable(unidadY)
- = max entonces dispara(unitX a unidadY)*/
+
 
  //-------------------------priority 3-----------------------------------------
    /*si es la ronda 0 y la unidad es sniper, disparar a la mas fuerte*/
