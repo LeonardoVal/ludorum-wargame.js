@@ -32,9 +32,12 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 		new ludorum.players.RandomPlayer(),
 		new ludorum.players.RandomPlayer()
 	],
-	game = new ludorum_wargame.Wargame(ludorum_wargame.test.example1()),
+	game = ludorum_wargame.test.example1(),
 	match = new ludorum.Match(game, players);
-	match.run().then(function (m) {
+	/*match.events.on('move', function (game, moves) {
+		console.log("Performed: ", moves);
+	});*/
+	return match.run().then(function (m) {
 		return m.result();
 	});
 };
@@ -67,7 +70,9 @@ base.Future.all(
 ).then(function () {
 	server.logger.info("Statistics:\n"+ STATS);
 	server.logger.info("Finished all matches. Stopping server.");
+	setTimeout(process.exit, 10);
 }, function (error) {
 	server.logger.error(error +'');
+	setTimeout(process.exit, 10);
 });
 // fin
