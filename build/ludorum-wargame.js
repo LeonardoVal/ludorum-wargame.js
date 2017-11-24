@@ -824,6 +824,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 	'static __SERMAT__': {
 		serializer: function serialize_Wargame(obj) {
 			var args = {
+					activePlayer: obj.activePlayer(),
 					armies: obj.armies,
 					terrain: obj.terrain,
 					round: obj.round,
@@ -1748,7 +1749,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
    return this;
  },
  attachToMatch: function attachToMatch(game,match){
-   //console.log(game);
    var player = this,
      round = 0,
      roundActions = [],
@@ -1783,7 +1783,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  the rules of the actions executed by the player in the round.
   */
  adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
-     console.log("ajustar pesos");
      //reglas aplicadas esta ronda
      var reglasAplicadas = [];
      roundActions.forEach(function (ra){
@@ -1847,37 +1846,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
       }
     }
  },
-     /*
-     var updateRules = [];
-     roundActions.forEach(function (action) {
-       var name = action.__rule__[0].name;
-       if (updateRules.indexOf(name) < 0){
-         updateRules.push(action);
-       }
-     });
-     console.log("verificar la correcta actualizacion de pesos");
-     console.log("updateRules");
-     //actualizo los pesos en las reglas del DynamicScriptingPlayer
-     for (var i=0; i<updateRules.length; i++){
-       console.log(updateRules[i].__rule__[0].name);
-       for (var j=0; j<this.rules.length; j++){
-         if (this.rules[j][0].name === updateRules[i].__rule__[0].name){
-           this.rules[j][1] = updateRules[i].__rule__[1];
-           //console.log("this.rules[j][0].name");
-           //console.log(this.rules[j][0].name);
-           //console.log("updateRules[i].__rule__[0].name");
-           //console.log(updateRules[i].__rule__[0].name);
-           //console.log("this.rules[j][1]");
-           //console.log(this.rules[j][1]);
-         }
-       }
-     }
-    // this.sortRules();
-  // }
-
-*/
-
-
 
  /** Calculates the worth of a game state from the point of view of the player. This is the cost
  of opponent's eliminated models and units minus own eliminated models and units.
@@ -1928,7 +1896,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 //accion basica move. puede solo moverse, o moverse y disparar
  move: function move(unitX,moveAction,shootUnitY){
-   //console.log(moveAction.position);
    if (shootUnitY){
      //el shoot ya tiene EndTurnAction incorporado, si solo se mueve hay q agregarlo
      return [new ActivateAction(unitX.id),moveAction,new ShootAction(unitX.id,shootUnitY.id)];
@@ -3641,15 +3608,7 @@ disparar a la mas facil de matar*/
    }
   return null;
  }),
- /*
- /* FIXME: falta mejorResuladoAtaque(unitX y unitX2 a unidadY)
- si ronda = 1 y willWoundShooting(game,shooter,target) y
- mejorResuladoAtaque(unitX y unitX2 a unidadY) > 75% y fuerza(unidadY) =
- max entonces dispara(unitX a unidadY)
- -----
- si ronda = 2 y willWoundShooting(game,shooter,target) y
- mejorResuladoAtaque(unitX y unitX2 a unidadY) > 75% y eliminable(unidadY)
- = max entonces dispara(unitX a unidadY)*/
+
 
  //-------------------------priority 3-----------------------------------------
    /*si es la ronda 0 y la unidad es sniper, disparar a la mas fuerte*/
@@ -4530,30 +4489,6 @@ rule_3T: playerRule(3, function rule_3T(game, player){
  })
 
 }); // declare DynamicScriptingPlayer
-
-
-
-
-
-
-
-
-
-
-
-
-
-//##################################################################
-/*
-
-
-function attackTeamCanWoundALot(unitX,unitX2,unitY){
- return bestAttacksResult(unitX,unitX2,unitY)>75;
- //bestAttackTeamResult: unitX ataca a unitY, luego unitX2 (aun no activada) ataca a unitY, se mide el maximo daño que pueden hacer
-}
-
-//raiseIf(true, 'range ' + range);
-*/
 
 
 
