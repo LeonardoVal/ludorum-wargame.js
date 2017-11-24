@@ -139,6 +139,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 	'static __SERMAT__': {
 		serializer: function serialize_Wargame(obj) {
 			var args = {
+					activePlayer: obj.activePlayer(),
 					armies: obj.armies,
 					terrain: obj.terrain,
 					round: obj.round,
