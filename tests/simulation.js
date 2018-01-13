@@ -1,5 +1,5 @@
 /** # Distributed game simulations.
- * 
+ *
 */
 "use strict";
 require('source-map-support').install();
@@ -44,7 +44,7 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 5,
+var MATCH_COUNT = 500,
 	STATS = new base.Statistics();
 
 base.Future.all(
