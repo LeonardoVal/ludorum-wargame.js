@@ -93,6 +93,60 @@ exports.Renderer = declare({
 		ctx.fillStyle = color;
 		ctx.fillRect(x, y, 1, 1);
 	},
+	renderInfluence: function renderInfluence(wargame,grid){
+		
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
+			var w=grid.length,
+			h=grid[0].length,
+			renderer = this,
+			canvas = this.canvas,
+			terrain = wargame.terrain,
+			world = terrain.world,
+			value,
+			min=Number.POSITIVE_INFINITY,
+			max=Number.NEGATIVE_INFINITY,
+			absMax,
+			opacity,x,y,
+			width = terrain.width,
+			height = terrain.height;
+			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			for ( x = 0, width; x < width; x++) {
+				for ( y = 0, height; y < height; y++) {
+					if (!terrain.isPassable([x, y])) {
+						this.drawSquare(x, y, 1, 1, "black");
+					} else {
+						this.drawSquare(x, y, 1, 1, "#CCCCCC");
+					}
+				}
+			}
+			for ( x=0; x<w;x++){
+				for ( y=0; y<h;y++){
+					if (!isNaN(grid[x][y])){
+						max= Math.max(max,grid[x][y]);
+						min= Math.min(min,grid[x][y]);
+					}
+				}
+			}
+		absMax= Math.max(max,Math.abs(min));
+			for ( x=0; x<w;x++){
+				for ( y=0; y<h;y++){
+					value=grid[x][y];
+					if (value =="t" ){
+						this.drawSquare(x,y,1,1,"black");
+					}
+					else if (value >0 ){
+						opacity = value / absMax;
+						this.drawSquare(x,y,1,1,"rgba(255,0,0,"+opacity+")" );
+					}
+					else if (value <0 ){
+						opacity = -value / absMax;
+						this.drawSquare(x,y,1,1,"rgba(0,0,255,"+opacity+")");
+					}
+				}
+			}
+		});
+	},
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -229,49 +283,7 @@ exports.Renderer = declare({
 		ctx.restore();
 
 	},
-	renderInfluence: function renderInfluence(wargame,grid){
-		var w=grid.length,
-			h=grid[0].length,
-			renderer = this,
-			canvas = this.canvas,
-			ctx = this.ctx,
-			terrain = wargame.terrain,
-			world = terrain.world,
-			value,
-			min=Number.POSITIVE_INFINITY,
-			max=Number.NEGATIVE_INFINITY,
-			absMax,
-			opacity,x,y;
-		ctx.save();
-		for ( x=0; x<w;x++){
-			for ( y=0; y<h;y++){
-				if (!isNaN(grid[x][y])){
-					max= Math.max(max,grid[x][y]);
-					min= Math.min(min,grid[x][y]);
-				}
-			}
-		}
-		absMax= Math.max(max,Math.abs(min));
-		ctx.scale(canvas.width / terrain.WorldWidth, canvas.height / terrain.WorldHeight);
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		for ( x=0; x<w;x++){
-			for ( y=0; y<h;y++){
-				value=grid[x][y];
-				if (value =="t" ){
-					this.drawSquare(x,y,1,1,"black");
-				}
-				else if (value >0 ){
-					opacity = value / absMax;
-					this.drawSquare(x,y,1,1,"rgba(255,0,0,"+opacity+")" );
-				}
-				else if (value <0 ){
-					opacity = -value / absMax;
-					this.drawSquare(x,y,1,1,"rgba(0,0,255,"+opacity+")");
-				}
-			}
-		}
-		ctx.restore();
-	},*/
+	*/
 }); //declare Renderer.
 
 /*

@@ -865,38 +865,38 @@ var Terrain = exports.Terrain = declare({
 	],
 
 	map: [
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
+		"000000000110000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"100000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"111111111110000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
+		"000000000010000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
@@ -971,8 +971,6 @@ var Terrain = exports.Terrain = declare({
 	*/
 	reachablePositions: function reachablePositions(unit, range) {
 
-		performance.mark("reachablePositions-start");
-
 		range = range || 12;
 		var visited = {},
 			pending = [unit.position],
@@ -995,12 +993,7 @@ var Terrain = exports.Terrain = declare({
 				pending.push(pos2);
 			}
 		}
-		performance.mark("reachablePositions-end");
-		performance.measure(
-			"reachablePositions",
-			"reachablePositions-start",
-			"reachablePositions-end"
-		  );
+	
 		return visited;
 	},
 
@@ -1145,14 +1138,20 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.67,
-	decay: 0.21,
-	iterations: 5,
+	decay: 0.3,
+	iterations: 30,
 
 	constructor: function InfluenceMap(game, role){
-		this.grid = game.terrain.terrainGrid();
+		this.width= game.terrain.width;
+		this.height= game.terrain.height;
+		this.grid= this.matrix(this.width);
+		this.terrain= game.terrain;
 		this.role = role;
-    },
-
+		
+	},
+	matrix:function matrix(dim){
+		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
+	},
 	update: function update(game) {
 		var influenceMap = this,
 			grid = this.grid,
@@ -1163,7 +1162,6 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		}
 		return grid;
 	},
-
 	unitsInfluences: function unitsInfluences(game) {
 		var imap = this,
 			sign,
@@ -1191,8 +1189,6 @@ var InfluenceMap = exports.InfluenceMap = declare({
 	influence: function influence(unit) {
 		return unit.worth(); //FIXME Too simple?
 	},
-
-
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
 			di,dj,inf=0,absInf,absV;
@@ -1219,19 +1215,23 @@ var InfluenceMap = exports.InfluenceMap = declare({
 			momentum = this.momentum,
 			oneGrid=[],
 			value,
-			inf;
+			inf,
+			terrain=this.terrain;
 
 		for (var r= 0; r <grid.length; r++) {
 			for (var c = 0; c < grid[r].length;c++) {
 				value=grid[r][c];
-				if (!isNaN(value)) {
-					inf = this.getMomentumInf(grid,r,c,decays);
-					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
-					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
-				}else{
+				if (terrain.map[r][c]===1){
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  "t";
 				}
+				//else if (!isNaN(value)) {
+				else{
+					inf = this.getMomentumInf(grid,r,c,decays);
+					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
+					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
+				}
+				//else ( console.log("error Here");)
 			}
 		}
 		//console.log(Date.now()- start);
@@ -4634,6 +4634,60 @@ exports.Renderer = declare({
 		ctx.fillStyle = color;
 		ctx.fillRect(x, y, 1, 1);
 	},
+	renderInfluence: function renderInfluence(wargame,grid){
+		
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
+			var w=grid.length,
+			h=grid[0].length,
+			renderer = this,
+			canvas = this.canvas,
+			terrain = wargame.terrain,
+			world = terrain.world,
+			value,
+			min=Number.POSITIVE_INFINITY,
+			max=Number.NEGATIVE_INFINITY,
+			absMax,
+			opacity,x,y,
+			width = terrain.width,
+			height = terrain.height;
+			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			for ( x = 0, width; x < width; x++) {
+				for ( y = 0, height; y < height; y++) {
+					if (!terrain.isPassable([x, y])) {
+						this.drawSquare(x, y, 1, 1, "black");
+					} else {
+						this.drawSquare(x, y, 1, 1, "#CCCCCC");
+					}
+				}
+			}
+			for ( x=0; x<w;x++){
+				for ( y=0; y<h;y++){
+					if (!isNaN(grid[x][y])){
+						max= Math.max(max,grid[x][y]);
+						min= Math.min(min,grid[x][y]);
+					}
+				}
+			}
+		absMax= Math.max(max,Math.abs(min));
+			for ( x=0; x<w;x++){
+				for ( y=0; y<h;y++){
+					value=grid[x][y];
+					if (value =="t" ){
+						this.drawSquare(x,y,1,1,"black");
+					}
+					else if (value >0 ){
+						opacity = value / absMax;
+						this.drawSquare(x,y,1,1,"rgba(255,0,0,"+opacity+")" );
+					}
+					else if (value <0 ){
+						opacity = -value / absMax;
+						this.drawSquare(x,y,1,1,"rgba(0,0,255,"+opacity+")");
+					}
+				}
+			}
+		});
+	},
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -4770,49 +4824,7 @@ exports.Renderer = declare({
 		ctx.restore();
 
 	},
-	renderInfluence: function renderInfluence(wargame,grid){
-		var w=grid.length,
-			h=grid[0].length,
-			renderer = this,
-			canvas = this.canvas,
-			ctx = this.ctx,
-			terrain = wargame.terrain,
-			world = terrain.world,
-			value,
-			min=Number.POSITIVE_INFINITY,
-			max=Number.NEGATIVE_INFINITY,
-			absMax,
-			opacity,x,y;
-		ctx.save();
-		for ( x=0; x<w;x++){
-			for ( y=0; y<h;y++){
-				if (!isNaN(grid[x][y])){
-					max= Math.max(max,grid[x][y]);
-					min= Math.min(min,grid[x][y]);
-				}
-			}
-		}
-		absMax= Math.max(max,Math.abs(min));
-		ctx.scale(canvas.width / terrain.WorldWidth, canvas.height / terrain.WorldHeight);
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		for ( x=0; x<w;x++){
-			for ( y=0; y<h;y++){
-				value=grid[x][y];
-				if (value =="t" ){
-					this.drawSquare(x,y,1,1,"black");
-				}
-				else if (value >0 ){
-					opacity = value / absMax;
-					this.drawSquare(x,y,1,1,"rgba(255,0,0,"+opacity+")" );
-				}
-				else if (value <0 ){
-					opacity = -value / absMax;
-					this.drawSquare(x,y,1,1,"rgba(0,0,255,"+opacity+")");
-				}
-			}
-		}
-		ctx.restore();
-	},*/
+	*/
 }); //declare Renderer.
 
 /*
