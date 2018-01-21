@@ -2,7 +2,7 @@
 <html><head>
 	<title>ludorum-wargame console.</title>
 	<meta charset="UTF-8"/>
-	 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<style>
 body { font-family: "Merriweather", "PT Serif", Georgia, "Times New Roman", serif; }
 h1 { text-align: center; }
@@ -13,61 +13,68 @@ a { color: black; text-decoration: none; }
 canvas { border: 1px solid black; }
 	</style>
 	<script src="../node_modules/requirejs/require.js"></script>
-</head><body onload="main();">
+    </head><body onload="main();">
 	<h1><tt>ludorum-wargame</tt> tester</h1>
 	<p>Open your browser Javascript console. In Windows use: Ctrl+Shift+J in Chrome, Ctrl+Shift+K in Firefox, F12 in Internet Explorer, Ctrl+Shift+I in Opera.</p>
 	<table id="reference"><tr>
-		<td><a href="javascript:console.info('ludorum_wargame');console.dir(ludorum_wargame);">ludorum_wargame</a></td>
-		<td>TODO.</td>
-	</tr><tr>
-		<td><a href="javascript:">
-<pre>var LW = ludorum_wargame,
-   game1 = LW.test.example1(),
-   moves1 = game1.moves().Red,
-   game2 = game1.next({ Red: moves1[0] });</pre></a>
-		</td><td>Código de prueba 1</td>
-	</tr><tr>
-		<td><a href="javascript:">
-<pre>var cont = game2.next({ Red: game2.moves().Red[25] }),
-   game3 = cont.next({ wounds: 5 }),
-   game4 = game3.next({ Red: game3.moves().Red[0] });</pre></a>
-		</td><td>Código de prueba 2</td>
-	</tr><tr>
-		<td><a href="javascript:">
-<pre>ludorum_wargame.test.testGame();</pre></a>
-		</td><td>Juegos de prueba.</td>
-	</tr><tr>
-		<td><a href="javascript:">
-<pre>ludorum_wargame.test.randomAbstractedGame();</pre></a>
-		</td><td>Juego estratégico aleatorio.</td>
-	</tr>
-<tr>
-		<td><a href="javascript:">
-<pre>ludorum_wargame.test.randomAbstractedGameDiscrete();</pre></a>
-		</td><td>Terreno Discreto -Juego estratégico aleatorio.</td>
-	</tr>
-</table>
+	        <td><a href="javascript:console.info('ludorum_wargame');console.dir(ludorum_wargame);">ludorum_wargame</a></td>
+	        <td>TODO.</td>
+	    </tr><tr>
+	        <td><a href="javascript:">
+            <pre>var LW = ludorum_wargame,
+                 game1 = LW.test.example1(),
+                 moves1 = game1.moves().Red,
+                 game2 = game1.next({ Red: moves1[0] });</pre></a>
+	        </td><td>Código de prueba 1</td>
+	    </tr><tr>
+	    <td><a href="javascript:">
+            <pre>var cont = game2.next({ Red: game2.moves().Red[25] }),
+                 game3 = cont.next({ wounds: 5 }),
+                 game4 = game3.next({ Red: game3.moves().Red[0] });</pre></a>
+	    </td><td>Código de prueba 2</td>
+	    </tr><tr>
+	        <td><a href="javascript:">
+                <pre>ludorum_wargame.test.testGame();</pre></a>
+	        </td><td>Juegos de prueba.</td>
+	        </tr><tr>
+	        <td><a href="javascript:">
+                <pre>ludorum_wargame.test.randomAbstractedGame();</pre></a>
+	        </td><td>Juego estratégico aleatorio.</td>
+	    </tr><tr>
+		    <td><a href="javascript:">
+                <pre>ludorum_wargame.test.randomAbstractedGameDiscrete();</pre></a>
+		    </td><td>Terreno Discreto -Juego estratégico aleatorio.</td>
+	    </tr><tr>
+		    <td><a href="javascript:">
+                <pre>ludorum_wargame.test.testGame(new ludorum_wargame.DynamicScriptingPlayer());</pre></a>
+		    </td><td>DS vs random con ajuste de pesos.</td>
+	    </tr><tr>
+		    <td><a href="javascript:">
+                <pre>ludorum_wargame.test.testGame(new ludorum_wargame.DynamicScriptingPlayer());</pre></a>
+		    </td><td>DS vs random sin ajuste de pesos.</td>
+	    </tr>
+    </table>
 	<canvas width="500" height="500" id="wargame-canvas"></canvas>
 	<script type="text/javascript">
-function main() { "use strict";
-	console.log("Initializing...");
-	require(['require-config'], function (init) {
-		init(['ludorum-wargame', 'ludorum', 'creatartis-base', 'sermat'],
-		function (ludorum_wargame, ludorum, base, Sermat) {
-			window.RENDERER = new ludorum_wargame.Renderer();
-			Sermat.modifiers.mode = Sermat.BINDING_MODE;
-		}, function (error) {
-			throw error;
-		});
-	});
-	Array.prototype.slice.call(document.querySelectorAll('#reference tr td a')).forEach(function (jsLink) {
-		var label, code;
-		if (jsLink.href == "javascript:") {
-			code = '\"'+ (jsLink.getAttribute('data-code') || jsLink.textContent)
-				.replace(/<br\/>/g, '\\n').replace(/\n/g,'\\n').replace(/\"/g, '\\\"') +'\"';
-			jsLink.href="javascript:console.info("+ code +");console.log(eval("+ code +"));";
-		}
-	});
-}
+        function main() { "use strict";
+	        console.log("Initializing...");
+	        require(['require-config'], function (init) {
+		        init(['ludorum-wargame', 'ludorum', 'creatartis-base', 'sermat'],
+		        function (ludorum_wargame, ludorum, base, Sermat) {
+			        window.RENDERER = new ludorum_wargame.Renderer();
+			        Sermat.modifiers.mode = Sermat.BINDING_MODE;
+		        }, function (error) {
+			        throw error;
+		        });
+	        });
+	        Array.prototype.slice.call(document.querySelectorAll('#reference tr td a')).forEach(function (jsLink) {
+		        var label, code;
+		        if (jsLink.href == "javascript:") {
+			        code = '\"'+ (jsLink.getAttribute('data-code') || jsLink.textContent)
+				        .replace(/<br\/>/g, '\\n').replace(/\n/g,'\\n').replace(/\"/g, '\\\"') +'\"';
+			        jsLink.href="javascript:console.info("+ code +");console.log(eval("+ code +"));";
+		        }
+	        });
+        }
 	</script>
 </body></html>

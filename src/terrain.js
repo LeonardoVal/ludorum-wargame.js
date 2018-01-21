@@ -130,7 +130,7 @@ var Terrain = exports.Terrain = declare({
 	*/
 	reachablePositions: function reachablePositions(unit, range) {
 
-		performance.mark("reachablePositions-start");
+		//performance.mark("reachablePositions-start");
 
 		range = range || 12;
 		var visited = {},
@@ -154,12 +154,12 @@ var Terrain = exports.Terrain = declare({
 				pending.push(pos2);
 			}
 		}
-		performance.mark("reachablePositions-end");
+		/*performance.mark("reachablePositions-end");
 		performance.measure(
 			"reachablePositions",
 			"reachablePositions-start",
 			"reachablePositions-end"
-		  );
+		);*/
 		return visited;
 	},
 
