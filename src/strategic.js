@@ -63,24 +63,42 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		});
 	},
 
+	strategicMoves:function strategicMoves(abstractedGame,influenceMap){
+		var g = abstractedGame,
+			activePlayer = g.activePlayer(),
+			attacker = this.unitById(g, this.unitId),
+			target = this.unitById(g, this.targetId),
+		    areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+		//	attackerReach=g.terrain.reachablePositions(attacker,48),
+		//	reachAOS=Object.keys(targetAOS).filter(function (n){return Object.keys(attackerReach).includes(n);}),
+		//	attacksPos,
+		//	approachesPos,
+			pos;
+		
+			return g.terrain.canReachVisible(attacker, target.position,influenceMap,areaOfSight);
+	},
 	execute: function execute(abstractedGame, update) {
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
-			activePlayer = g.activePlayer();
+			activePlayer = g.activePlayer(),
+			attack=this;
+		
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
+		console.log(this.strategicMoves(g,abstractedGame.concreteInfluence));
+
 		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
-		if (!canShoot) {
+		if (canShoot===Infinity) {
 			//FIXME Do not use generated moves, generate them.
 			g = this.executeMovement(g, actions, update);
 			if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-				canShoot = g.terrain.canShoot(shooter, target);
+				canShoot = g.terrain.canShoot(attacker, target);
 			}
 		}
-		if (canShoot) {
+		if (canShoot!==Infinity) {
 			g = g.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
 			if (g.isContingent) {
 				g = g.randomNext();
@@ -118,6 +136,9 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		this.players = wargame.players;
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
+		this.influenceMap =new ludorum_wargame.InfluenceMap(wargame);
+		this.concreteInfluence=this.influenceMap.update(wargame);
+
 	},
 
 	/**
@@ -156,6 +177,7 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
+		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame);
 		return nextGame;
 	},
 

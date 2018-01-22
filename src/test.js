@@ -183,11 +183,10 @@ var terrain = new Terrain([
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+    game = new AbstractedWargame(this.example1());
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
@@ -198,8 +197,14 @@ var terrain = new Terrain([
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
+      try {
+        
+      
       var terrain=  next.concreteGame.terrain;
       window.RENDERER.render(next.concreteGame);
+      } catch (error) {
+        console.log(error);
+      }
 		});
 		match.run().then(function (m) {
       console.log("randomAbstractedGame");
@@ -210,7 +215,7 @@ var terrain = new Terrain([
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],

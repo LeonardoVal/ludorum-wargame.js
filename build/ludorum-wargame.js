@@ -865,18 +865,18 @@ var Terrain = exports.Terrain = declare({
 	],
 
 	map: [
-		"000000000110000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"100000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"111111111110000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
@@ -1034,6 +1034,54 @@ var Terrain = exports.Terrain = declare({
 		}
 		return false;
 	},
+	canReachVisible: function canReachVisible(unit, destination,influenceMap,areaOfSight) {
+		var terrain = this,
+			origin = unit.position,
+			range = 42,
+			visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			matrix=[],
+			heuristic={},
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[origin] = 0;
+		heuristic[origin] = this.distance(origin, destination);
+
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			if (pos[0] === destination[0] && pos[1] === destination[1]) {
+				return matrix;
+			}
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+
+				heuristic[pos2] = this.distance(pos2, destination);
+				this.sparseMatrix(matrix,pos2,{key:"Sight",value:areaOfSight[pos2]});
+				this.sparseMatrix(matrix,pos2,{key:"Influ",value:influenceMap[pos2]});
+				this.sparseMatrix(matrix,pos2,{key:"Dist",value:heuristic[pos2]});
+				pending.push(pos2);
+			}
+			pending.sort(function (p1, p2) {
+				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
+			});
+		}
+		return matrix;
+	},
+	sparseMatrix:function sparseMatrix(matrix,pos,object){
+		if (object.value!=undefined){
+		matrix[pos[0]]=matrix[pos[0]] ? matrix[pos[0]] : [];
+		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]] ? matrix[pos[0]][[pos[1]]] : {};
+		matrix[pos[0]][[pos[1]]][object.key]=object.value;
+		}
+	},
 
 	// ## Visibility ##############################################################################
 
@@ -1146,7 +1194,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.height= game.terrain.height;
 		this.grid= this.matrix(this.width);
 		this.terrain= game.terrain;
-		this.role = role;
+		//this.role = role;
 		
 	},
 	matrix:function matrix(dim){
@@ -1156,6 +1204,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		var influenceMap = this,
 			grid = this.grid,
 			pos;
+		this.role = game.activePlayer();
 		this.unitsInfluences(game);
 		for (var i = 0; i < this.iterations; i++) {
 			grid=this.spread(grid);
@@ -1428,11 +1477,10 @@ var terrain = new Terrain([
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+    game = new AbstractedWargame(this.example1());
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
@@ -1443,8 +1491,14 @@ var terrain = new Terrain([
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
+      try {
+        
+      
       var terrain=  next.concreteGame.terrain;
       window.RENDERER.render(next.concreteGame);
+      } catch (error) {
+        console.log(error);
+      }
 		});
 		match.run().then(function (m) {
       console.log("randomAbstractedGame");
@@ -1455,7 +1509,7 @@ var terrain = new Terrain([
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
 				//new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
@@ -4911,24 +4965,42 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		});
 	},
 
+	strategicMoves:function strategicMoves(abstractedGame,influenceMap){
+		var g = abstractedGame,
+			activePlayer = g.activePlayer(),
+			attacker = this.unitById(g, this.unitId),
+			target = this.unitById(g, this.targetId),
+		    areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+		//	attackerReach=g.terrain.reachablePositions(attacker,48),
+		//	reachAOS=Object.keys(targetAOS).filter(function (n){return Object.keys(attackerReach).includes(n);}),
+		//	attacksPos,
+		//	approachesPos,
+			pos;
+		
+			return g.terrain.canReachVisible(attacker, target.position,influenceMap,areaOfSight);
+	},
 	execute: function execute(abstractedGame, update) {
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
-			activePlayer = g.activePlayer();
+			activePlayer = g.activePlayer(),
+			attack=this;
+		
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
+		console.log(this.strategicMoves(g,abstractedGame.concreteInfluence));
+
 		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
-		if (!canShoot) {
+		if (canShoot===Infinity) {
 			//FIXME Do not use generated moves, generate them.
 			g = this.executeMovement(g, actions, update);
 			if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-				canShoot = g.terrain.canShoot(shooter, target);
+				canShoot = g.terrain.canShoot(attacker, target);
 			}
 		}
-		if (canShoot) {
+		if (canShoot!==Infinity) {
 			g = g.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
 			if (g.isContingent) {
 				g = g.randomNext();
@@ -4966,6 +5038,9 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		this.players = wargame.players;
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
+		this.influenceMap =new ludorum_wargame.InfluenceMap(wargame);
+		this.concreteInfluence=this.influenceMap.update(wargame);
+
 	},
 
 	/**
@@ -5004,6 +5079,7 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
+		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame);
 		return nextGame;
 	},
 

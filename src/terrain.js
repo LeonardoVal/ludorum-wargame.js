@@ -24,18 +24,18 @@ var Terrain = exports.Terrain = declare({
 	],
 
 	map: [
-		"000000000110000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"100000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"111111111110000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
-		"000000000010000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
 		"000000000010000000000000000000000000000000000000",
@@ -193,6 +193,54 @@ var Terrain = exports.Terrain = declare({
 		}
 		return false;
 	},
+	canReachVisible: function canReachVisible(unit, destination,influenceMap,areaOfSight) {
+		var terrain = this,
+			origin = unit.position,
+			range = 42,
+			visited = {},
+			pending = [unit.position],
+			width = this.width,
+			height = this.height,
+			matrix=[],
+			heuristic={},
+			SURROUNDINGS = this.SURROUNDINGS,
+            	pos, pos2, cost, cost2, delta, tile;
+		visited[origin] = 0;
+		heuristic[origin] = this.distance(origin, destination);
+
+		for (var i = 0; i < pending.length; i++) {
+			pos = pending[i];
+			if (pos[0] === destination[0] && pos[1] === destination[1]) {
+				return matrix;
+			}
+			cost = visited[pos];
+			for (var j = 0; j < SURROUNDINGS.length; j++) {
+				delta = SURROUNDINGS[j];
+				cost2 = cost + delta.cost;
+				if (cost2 > range) continue;
+				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
+				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
+				visited[pos2] = cost2;
+
+				heuristic[pos2] = this.distance(pos2, destination);
+				this.sparseMatrix(matrix,pos2,{key:"Sight",value:areaOfSight[pos2]});
+				this.sparseMatrix(matrix,pos2,{key:"Influ",value:influenceMap[pos2]});
+				this.sparseMatrix(matrix,pos2,{key:"Dist",value:heuristic[pos2]});
+				pending.push(pos2);
+			}
+			pending.sort(function (p1, p2) {
+				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
+			});
+		}
+		return matrix;
+	},
+	sparseMatrix:function sparseMatrix(matrix,pos,object){
+		if (object.value!=undefined){
+		matrix[pos[0]]=matrix[pos[0]] ? matrix[pos[0]] : [];
+		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]] ? matrix[pos[0]][[pos[1]]] : {};
+		matrix[pos[0]][[pos[1]]][object.key]=object.value;
+		}
+	},
 
 	// ## Visibility ##############################################################################
 
@@ -305,7 +353,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.height= game.terrain.height;
 		this.grid= this.matrix(this.width);
 		this.terrain= game.terrain;
-		this.role = role;
+		//this.role = role;
 		
 	},
 	matrix:function matrix(dim){
@@ -315,6 +363,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		var influenceMap = this,
 			grid = this.grid,
 			pos;
+		this.role = game.activePlayer();
 		this.unitsInfluences(game);
 		for (var i = 0; i < this.iterations; i++) {
 			grid=this.spread(grid);
