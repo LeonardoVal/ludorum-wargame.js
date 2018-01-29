@@ -65,17 +65,13 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 
 	strategicMoves:function strategicMoves(abstractedGame,influenceMap){
 		var g = abstractedGame,
-			activePlayer = g.activePlayer(),
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
-		    areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
-		//	attackerReach=g.terrain.reachablePositions(attacker,48),
-		//	reachAOS=Object.keys(targetAOS).filter(function (n){return Object.keys(attackerReach).includes(n);}),
-		//	attacksPos,
-		//	approachesPos,
-			pos;
-		
-			return g.terrain.canReachVisible(attacker, target.position,influenceMap,areaOfSight);
+			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange());
+		if (influenceMap){
+			return g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
+		}
+		return g.terrain.canReachAStar({target:target,attacker:attacker,exitCondition:areaOfSight});
 	},
 	execute: function execute(abstractedGame, update) {
 		var g = abstractedGame.concreteGame,
@@ -86,7 +82,8 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
-		console.log(this.strategicMoves(g,abstractedGame.concreteInfluence));
+		RENDERER.renderPath(abstractedGame.concreteGame,this.strategicMoves(g,abstractedGame.concreteInfluence));
+		RENDERER.renderPath(abstractedGame.concreteGame,this.strategicMoves(g),"blue");
 
 		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),

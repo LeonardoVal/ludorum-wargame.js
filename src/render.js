@@ -45,6 +45,39 @@ exports.Renderer = declare({
 			}
 		});
 	},
+	renderPath: function renderPath(wargame,path,color) {
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
+			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			for (var x = 0, width = terrain.width; x < width; x++) {
+				for (var y = 0, height = terrain.height; y < height; y++) {
+					if (!terrain.isPassable([x, y])) {
+						this.drawSquare(x, y, 1, 1, "black");
+					} else {
+						this.drawSquare(x, y, 1, 1, "#CCCCCC");
+					}
+				}
+			}
+			var renderer = this,
+				armies = wargame.armies;
+			ctx.strokeStyle = 'black';
+			ctx.font = "1px Arial";
+			for (var team in armies) {
+				armies[team].units.forEach(function (unit) {
+					if (!unit.isDead()){
+						renderer.drawSquare(unit.position[0], unit.position[1], 1, 1, unit.army.player);
+						ctx.fillStyle = 'black';
+						ctx.fillText(unit.id, unit.position[0], unit.position[1]);
+					}
+				});
+			}
+			for (var move in path) {
+			
+				renderer.drawSquare(path[move].x, path[move].y, 1, 1, color || 'red');
+				
+			}
+		});
+	},
 
 	renderSight: function renderSight(wargame, unit) {
 		unit = unit || wargame.__activeUnit__;

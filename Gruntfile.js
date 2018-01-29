@@ -14,6 +14,7 @@ module.exports = function (grunt) {
 				'dynamicScripting',
 				'render',
 				'strategic',
+				'astar',
 			'__epilogue__'],
 		deps: [
 			{ id: 'creatartis-base', name: 'base'},

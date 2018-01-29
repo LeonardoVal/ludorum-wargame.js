@@ -82,6 +82,7 @@ var Terrain = exports.Terrain = declare({
 		//TODO initialization
 		this.width = this.map.length;
 		this.height = this.map[0].length;
+	
 	},
 
 	resetTerrain: function resetTerrain(wargame){
@@ -157,7 +158,7 @@ var Terrain = exports.Terrain = declare({
 	},
 
 	/**
-	*/
+	
 	canReach: function canReach(unit, destination, range) {
 		range = range || 12;
 		var terrain = this,
@@ -166,6 +167,7 @@ var Terrain = exports.Terrain = declare({
 			pending = [unit.position],
 			width = this.width,
 			height = this.height,
+			heuristic={},
 			SURROUNDINGS = this.SURROUNDINGS,
             	pos, pos2, cost, cost2, delta, tile;
 		visited[origin] = 0;
@@ -193,6 +195,28 @@ var Terrain = exports.Terrain = declare({
 		}
 		return false;
 	},
+	*/
+	canReachAStarInf: function canReachAStarInf(args){
+		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
+		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+
+	},
+	canReachAStar: function canReachAStar(args){
+		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
+		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+
+	},
+	heuristicInfluence: function heuristicInfluence(pos0, pos1,influenceMap){
+		var d1 = Math.abs(pos1.x - pos0.x),
+			d2 = Math.abs(pos1.y - pos0.y);
+		return d1 + d2+(influenceMap[pos0.x][pos0.y])*-50;
+		
+	},
+	/*
 	canReachVisible: function canReachVisible(unit, destination,influenceMap,areaOfSight) {
 		var terrain = this,
 			origin = unit.position,
@@ -203,6 +227,9 @@ var Terrain = exports.Terrain = declare({
 			height = this.height,
 			matrix=[],
 			heuristic={},
+			inSightTurnsDistance={},
+			distanceVal,
+			canShoot,
 			SURROUNDINGS = this.SURROUNDINGS,
             	pos, pos2, cost, cost2, delta, tile;
 		visited[origin] = 0;
@@ -210,8 +237,9 @@ var Terrain = exports.Terrain = declare({
 
 		for (var i = 0; i < pending.length; i++) {
 			pos = pending[i];
+			
 			if (pos[0] === destination[0] && pos[1] === destination[1]) {
-				return matrix;
+				return inSightTurnsDistance;
 			}
 			cost = visited[pos];
 			for (var j = 0; j < SURROUNDINGS.length; j++) {
@@ -221,23 +249,40 @@ var Terrain = exports.Terrain = declare({
 				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
 				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
 				visited[pos2] = cost2;
+				distanceVal= this.distance(pos2, destination);
+				heuristic[pos2] =distanceVal;
+				canShoot=distanceVal<=6 && areaOfSight[pos2]!==undefined;
 
-				heuristic[pos2] = this.distance(pos2, destination);
-				this.sparseMatrix(matrix,pos2,{key:"Sight",value:areaOfSight[pos2]});
-				this.sparseMatrix(matrix,pos2,{key:"Influ",value:influenceMap[pos2]});
-				this.sparseMatrix(matrix,pos2,{key:"Dist",value:heuristic[pos2]});
+				//this.sparseMatrix(matrix,pos2,{key:"Sight",value:areaOfSight[pos2]});
+				//this.sparseMatrix(matrix,pos2,{key:"Influ",value:influenceMap[pos2]});
+				//this.sparseMatrix(matrix,pos2,{key:"Dist",value:heuristic[pos2]});
+				if (areaOfSight[pos]){	
+					this.undefinedAsignArray(inSightTurnsDistance,canShoot);
+					inSightTurnsDistance[canShoot].push({distance:distanceVal,pos:pos2,influence:influenceMap[pos2[0]][pos2[1]]});
+				}
 				pending.push(pos2);
 			}
 			pending.sort(function (p1, p2) {
 				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
 			});
 		}
-		return matrix;
+		return inSightTurnsDistance;
 	},
-	sparseMatrix:function sparseMatrix(matrix,pos,object){
+	*/
+	distanceToTurns:function distanceToTurns(distance){
+		var turns =0;
+		if (distance<=6){
+			return turns;
+		}
+		return turns =distance % 12===0 ?distance / 12:( distance/12)+1;
+	},
+	undefinedAsignArray: function undefinedAsign(matrix,position) {
+		matrix[position]=matrix[position]!==undefined ? matrix[position] : [];
+	},
+	sparseMatrix:function sparseMatrix(matrix,distanceVal,pos,object){
 		if (object.value!=undefined){
-		matrix[pos[0]]=matrix[pos[0]] ? matrix[pos[0]] : [];
-		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]] ? matrix[pos[0]][[pos[1]]] : {};
+		matrix[pos[0]]=matrix[pos[0]]!==undefined ? matrix[pos[0]] : [];
+		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]]!==undefined  ? matrix[pos[0]][[pos[1]]] : {};
 		matrix[pos[0]][[pos[1]]][object.key]=object.value;
 		}
 	},
