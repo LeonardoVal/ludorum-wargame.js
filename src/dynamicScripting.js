@@ -195,6 +195,7 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 
 adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
+  //FIXME no siempre anda!!!!! 
   var reglasAplicadas = [];
   roundActions.forEach(function (ra){
     if (reglasAplicadas.indexOf(ra.__rule__)<0){
@@ -207,8 +208,6 @@ adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame)
   var reg,
     rap,
     name;
-  console.log("reglasAplicadas.length");
-  console.log(reglasAplicadas.length);
   if (diff <0){
     for (reg=0;reg<this.rules.length;reg++){
       if(reglasAplicadas.indexOf(this.rules[reg])<0){
