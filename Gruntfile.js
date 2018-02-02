@@ -12,6 +12,7 @@ module.exports = function (grunt) {
 				'test',
 				'grim-future',
 				'dynamicScripting',
+				'dynamicScriptingSinPesos',
 				'render',
 				'strategic',
 			'__epilogue__'],

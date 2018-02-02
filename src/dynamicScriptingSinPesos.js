@@ -1,19 +1,8 @@
-function playerRule(priority, fun) {
- fun.priority = priority;
- return fun;
-}
 
-function isFunction(functionToCheck) {
- var getType = {};
- return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
-}
-
-var roundActions_global = [];
-
-var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Player, {
+var DynamicScriptingSinPesosPlayer = exports.DynamicScriptingSinPesosPlayer = declare(ludorum.Player, {
  /** The constructor takes the player's `name` and the following:
   */
- constructor: function DynamicScriptingPlayer(params) {
+ constructor: function DynamicScriptingSinPesosPlayer(params) {
    ludorum.Player.call(this, params);
    initialize(this, params)
     .array('rules', { defaultValue: [] });
@@ -35,19 +24,12 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
    });
  },
 
- /** Sorts the rules first by priority (descending), then by weight (descending).
-  */
  sortRules: function sortRules() {
    this.rules.sort(function (r1, r2) {
      return r2[0].priority - r1[0].priority || r2[1] - r1[1];
    });
  },
 
- sortRuleListByWeight: function sortRuleListByWeight(ruleList) {
-   ruleList.sort(function (r1, r2) {
-     return r2[1] - r1[1];
-   });
- },
  //devuelve la lista de reglas de la prioridad indicada
  firstRules: function firstRules(game,player,priority){
    var rule, actions;
@@ -61,7 +43,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
        }
      }
    }
-   this.sortRuleListByWeight(retRules);
    return retRules;
   },
 
@@ -81,11 +62,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
        enableds += 1;
      }
    }
-   var gameWorth = 0;
-   // si es el principio de la ronda
-   if (enableds === units.length){
-     gameWorth = this.gameWorth(game, player);
-   }
    var roundActions = this.roundActions,
      lastRoundGame = game;
    if (this.__pendingActions__.length < 1) {
@@ -95,28 +71,8 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
          //rule = this.rules[i];
          var firstRules = this.firstRules(game,player,maxPriority);
          if (firstRules.length>0){
-           var sumWeight = 0;
-           for (var j=0; j<firstRules.length; j++){
-              var firstRule = firstRules[j];
-              sumWeight += firstRule[1];
-           }
-           // ya hay alguna regla con peso asignado
-           if (sumWeight > firstRules.length){
-             var prob = 0;
-             var sumProb = 0;
-             var rand = Math.random();
-             for (var k=0; j<firstRules.length; k++){
-              prob = firstRules[k][1]/sumWeight;
-              sumProb += prob;
-              if (rand<=sumProb){
-                rule = firstRules[k];
-                actions = rule[0].call(this, game, player);
-              }
-             }
-           } else { //todavia no se aplico pesos a las reglas
-             rule = firstRules[Math.floor(Math.random()*firstRules.length)];
-             actions = rule[0].call(this, game, player);
-           }
+           rule = firstRules[Math.floor(Math.random()*firstRules.length)];
+           actions = rule[0].call(this, game, player);
            if (actions) {
              actions.forEach(function (action) {
                action.__rule__ = rule;
@@ -124,7 +80,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
              this.__pendingActions__ = this.__pendingActions__.concat(actions);
              roundActions = roundActions.concat(actions);
              this.roundActions = roundActions;
-             roundActions_global = roundActions_global.concat(actions);
 
              var activateds = 0;
              for (var l=0; l<units.length;l++){
@@ -132,6 +87,10 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
                  activateds += 1;
                }
              }
+             // si estan todas activadas, termino la ronda
+             //if (activateds === units.length-1){
+               //this.adjustWeights(game,game.players[0],roundActions,gameWorth);
+             //}
              return this.__pendingActions__.shift();
            }
          } else { // no se cumple ninguna regla para la maxima prioridad, bajar de prioridad
@@ -143,235 +102,9 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
    return this.__pendingActions__.shift();
  },
 
- participate: function participate(match, role){
-   this.attachToMatch(match.state(),match);
-   return this;
- },
-
- attachToMatch: function attachToMatch(game,match){
-  //  var player = this,
-  //    round = 0,
-  //    roundActions = this.roundActions,
-  //    lastRoundGame = game;
-
-   var player = this,
-     round = 0,
-     lastRoundGame = game;
-
-   /*match.events.on('move', function (game, moves, match) {
-     var activePlayer = game.activePlayer();
-     if (activePlayer === game.players[0]) {
-       //console.log("moves[activePlayer]");
-       //console.log(moves[activePlayer]);
-       roundActions = roundActions.concat(moves[activePlayer]);
-       this.roundActions = roundActions;
-       //console.log("roundActions");
-       //console.log(roundActions);
-     }
-   });*/
-   match.events.on('next', function (game, next, match) {
-     //roundActions = this.roundActions;
-     if (!next.isContingent && next.round > round && !game.isContingent) {
-       player.adjustWeights(game,game.players[0],roundActions_global,lastRoundGame);
-       //player.adjustWeights(game,game.players[0],roundActions,lastRoundGame);
-       round = next.round;
-       //this.roundActions = [];
-       //roundActions = this.roundActions;
-       roundActions_global = [];
-       lastRoundGame = game;
-     }
-   });
-  // return match.run().then(function (m) {
-  //   player.adjustWeights(game,game.players[0],roundActions,lastRoundGame);
-  // });
- },
-
-//en desuso
- training: function training(game, opponent){
-   opponent = opponent || new ludorum.players.RandomPlayer();
-   var match = new ludorum.Match(game, [this, opponent]),
-     lastRoundGame = game;
-     this.attachToMatch(lastRoundGame,match);
- },
-
-adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
-  var reglasAplicadas = [];
-  roundActions.forEach(function (ra){
-    if (reglasAplicadas.indexOf(ra.__rule__)<0){
-      reglasAplicadas.push(ra.__rule__);
-    }
-  });
-  var lastGameWorth = this.gameWorth(lastRoundGame,player);
-  var diff = (this.gameWorth(game,player) - lastGameWorth)/10;
-  // si diff da negativo, a todas las reglas, salvo las que jugaron en esta ronda, se les suma diff
-  var reg,
-    rap,
-    name;
-  console.log("reglasAplicadas.length");
-  console.log(reglasAplicadas.length);
-  if (diff <0){
-    for (reg=0;reg<this.rules.length;reg++){
-      if(reglasAplicadas.indexOf(this.rules[reg])<0){
-        this.rules[reg][1] += diff;
-      }
-    }
-  }
- else { // si diff da positivo se lo sumara una vez a cada regla aplicada en esta ronda
-    for (reg=0;reg<this.rules.length;reg++){
-      if(reglasAplicadas.indexOf(this.rules[reg])>=0){
-        this.rules[reg][1] += diff;
-      }
-    }
-  }
-
-  // para cada accion calculo su valor
-  for (var roundAction=0; roundAction<roundActions.length; roundAction++){
-    var action = roundActions[roundAction];
-    name = action.__rule__[0].name;
-    if (!action.__rule__[1]){
-      action.__rule__[1] = 1;
-    }
-    var worthDiv10 = 0;
-    if (isFunction(action.worth)){
-      worthDiv10 = action.worth()/10;
-    } else {
-      worthDiv10 = action.worth/10;
-    }
-
-    for (reg=0; reg<this.rules.length; reg++){
-      // si el valor de la accion es < 0, a cada accion que no sea esta,
-      //se le suma a su regla el valor de esta accion
-      if (worthDiv10<0){
-        if (this.rules[reg][0].name != name){
-           this.rules[reg][1] += worthDiv10;
-        }
-      } else { // si da positivo, a la regla de esta accion se le suma el valor de esta accion
-        if (this.rules[reg][0].name == name){
-           this.rules[reg][1] += worthDiv10;
-        }
-      }
-   }
- }
-
-},
- /** The method `adjustWeights` check if the round has changed. If so, it adjusts the weights of
- the rules of the actions executed by the player in the round.
-  */
- adjustWeightsV: function adjustWeightsV(game, player, roundActions, lastRoundGame) {
-    //  console.log("roundActions");
-    //  console.log(roundActions);
-     //reglas aplicadas esta ronda
-     var reglasAplicadas = [];
-     roundActions.forEach(function (ra){
-       reglasAplicadas.push(ra.__rule__);
-     });
-     var lastGameWorth = this.gameWorth(lastRoundGame,player);
-     var diff = (this.gameWorth(game,player) - lastGameWorth)/10;
-     // si diff da negativo, a todas las reglas, salvo las que jugaron en esta ronda, se les suma diff
-     var reg,
-       rap,
-       name;
-     if (diff <0){
-       for (reg=0; reg<this.rules.length; reg++){
-         for (rap=0; rap<reglasAplicadas.length; rap++){
-           if (this.rules[reg][0].name != reglasAplicadas[rap][0].name){
-             //console.log("diff");
-             //console.log(diff);
-             this.rules[reg][1] -= diff;
-           }
-         }
-       }
-     } else { // si diff da positivo se lo sumara una vez a cada regla aplicada en esta ronda
-       var rulesNames = [];
-       for (rap=0; rap<reglasAplicadas.length; rap++){
-         name = reglasAplicadas[rap][0].name;
-         if (rulesNames.indexOf(name) < 0){
-           //comparo si las reglas tienen el mismo nombre que la regla aplicada
-           for (reg=0; reg<this.rules.length; reg++){
-             if (this.rules[reg][0].name == name){
-               this.rules[reg][1] += diff;
-               rulesNames.push(name);
-             }
-           }
-         }
-       }
-     }
-     // para cada accion calculo su valor
-     for (var roundAction=0; roundAction<roundActions.length; roundAction++){
-       var action = roundActions[roundAction];
-       name = action.__rule__[0].name;
-       if (!action.__rule__[1]){
-         action.__rule__[1] = 1;
-       }
-       var worthDiv10 = 0;
-       if (isFunction(action.worth)){
-         worthDiv10 = action.worth()/10;
-       } else {
-         worthDiv10 = action.worth/10;
-       }
-       //console.log("worthDiv10");
-       //console.log(worthDiv10);
-
-       for (reg=0; reg<this.rules.length; reg++){
-         // si el valor de la accion es < 0, a cada accion que no sea esta,
-         //se le resta a su regla el valor de esta accion
-         if (worthDiv10<0){
-           if (this.rules[reg][0].name != name){
-             this.rules[reg][1] -= worthDiv10;
-           }
-         } else { // si da positivo, a la regla de esta accion se le suma el valor de esta accion
-           if (this.rules[reg][0].name == name){
-             this.rules[reg][1] += worthDiv10;
-           }
-         }
-      }
-    }
-
-
-    // for (reg=0; reg<this.rules.length; reg++){
-    //   if (this.rules[reg][1]>1){
-    //     console.log("this.rules[reg][0].name");
-    //     console.log(this.rules[reg][0].name);
-    //     console.log("this.rules[reg][1]");
-    //     console.log(this.rules[reg][1]);
-    //   }
-    // }
- },
-
- /** Calculates the worth of a game state from the point of view of the player. This is the cost
- of opponent's eliminated models and units minus own eliminated models and units.
-  */
- gameWorth: function gameWorth(game, player) {
-   var worth = 0;
-   var cost = 0;
-   var deadModels = 0;
-   //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-   var armiesAndUnits = this.armiesAndUnits(game,player);
-   var playerUnits = armiesAndUnits[1];
-   var enemyUnits = armiesAndUnits[3];
-   enemyUnits.forEach(function (unitY) {
-     cost = unitY.cost();
-     if (unitY.isDead()){
-       worth += cost;
-     }
-     deadModels = unitY.size() - unitY.livingModels().length;
-     worth += cost*deadModels/unitY.size(); //FIXME no funciona correctamente con tough
-   });
-
-   playerUnits.forEach(function (unitX) {
-     cost = unitX.cost();
-     if (unitX.isDead()){
-       worth -= cost;
-     }
-     deadModels = unitX.size() - unitX.livingModels().length;
-     worth -= cost*deadModels/unitX.size(); //FIXME no funciona correctamente con tough
-   });
-   return worth;
- },
-
  'static __SERMAT__': {
-   identifier: 'DynamicScriptingPlayer',
-   serializer: function serialize_DynamicScriptingPlayer(obj) {
+   identifier: 'DynamicScriptingSinPesosPlayer',
+   serializer: function serialize_DynamicScriptingSinPesosPlayer(obj) {
      return this.serializeAsProperties(obj, ['name', 'rules']); //TODO Check function serialization.
    }
  },
@@ -450,7 +183,7 @@ scapeAux: function scapeAux(game,player,enemyUnits,unitX){
         var blockSightMovements = this.blockSightMovements(game,unitX,unitX2,eu);
         moveAction = blockSightMovements[Math.floor(Math.random()*blockSightMovements.length)];
       }
-      if (this.canShoot_(game,unitX,eu,true)){
+      if (this.canShoot(game,unitX,eu,true)){
         if (moveAction){
           return this.move(unitX,moveAction,eu);
         } else {
@@ -510,7 +243,7 @@ empezando por los enemigos mas peligrosos
     return this.move(unitX,move);
 },
 //devuelve true si el shooter puede dispararle al target
- canShoot_: function canShoot_(game,shooter,target,walking){
+ canShoot: function canShoot(game,shooter,target,walking){
    if (!shooter.isDead() && shooter.isEnabled && !target.isDead()){
      var areaOfSightShooter;
      if (walking){
@@ -634,7 +367,7 @@ empezando por los enemigos mas peligrosos
   var canAssist = false;
   for (var i=0;i<dangerousUnits.length;i++){
      var du = dangerousUnits[i];
-     if (this.canBlockSight(game,unitX,unitX2,du)||this.canShoot_(game,unitX,du,true)||this.canAssault(game,unitX,du)){
+     if (this.canBlockSight(game,unitX,unitX2,du)||this.canShoot(game,unitX,du,true)||this.canAssault(game,unitX,du)){
        canAssist = true;
      } else {
        canAssist = false;
@@ -720,13 +453,13 @@ empezando por los enemigos mas peligrosos
      du = [];
     for (var i=0;i<livingEnemyUnits.length;i++){
       var eu = livingEnemyUnits[i];
-      if (this.canShoot_(game,eu,unitX,true)||this.canAssault(game,eu,unitX)){
+      if (this.canShoot(game,eu,unitX,true)||this.canAssault(game,eu,unitX)){
         du.push(eu);
       }
     }
     return du;
    //return iterable(livingEnemyUnits).filter(function (eu) {
-     //return this.canShoot_(game,eu,unitX,true)||this.canAssault(game,eu,unitX);
+     //return this.canShoot(game,eu,unitX,true)||this.canAssault(game,eu,unitX);
     //});
  },
  //devuelve verdadero si las unidades enemigas no pueden matar a unit en este turno
@@ -1011,7 +744,7 @@ maxRangeInUnits: function maxRangeInUnits(units,unit){
 /*devuelve el porcentaje de modelos destruidos según el resultado esperado
 luego de un ataque de disparo realizado por la shooter a la target*/
  expectedResultShooting: function expectedResultShooting(game,shooter,target){
- if (this.canShoot_(game,shooter,target,true)){
+ if (this.canShoot(game,shooter,target,true)){
      var distance = game.terrain.distance(shooter.position, target.position);
      var livingModels = shooter.livingModels();
      var attackCount = 0;
@@ -2312,7 +2045,7 @@ rule_3K: playerRule(3, function rule_3K(game, player){
       //console.log(enemyUnits);
       for (var j=0; j<enemyUnits.length; j++){
         var unitY = enemyUnits[j];
-          if (this.canShoot_(game,unitX,unitY,false) && this.unitIsStrongest(enemyUnits,unitY)){
+          if (this.canShoot(game,unitX,unitY,false) && this.unitIsStrongest(enemyUnits,unitY)){
            //console.log("rule_3K. shoot");
            return this.shoot(unitX,unitY);
         }
@@ -2979,7 +2712,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  })
 
-}); // declare DynamicScriptingPlayer
+}); // declare DynamicScriptingSinPesosPlayer
 
 
 

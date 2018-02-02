@@ -161,6 +161,7 @@ var terrain = new Terrain([
      return game;
 },
 
+
 	randomGame: function randomGame() { //FIXME window
 		var RandomPlayer = ludorum.players.RandomPlayer,
 			players = [new RandomPlayer(), new RandomPlayer()];
@@ -204,7 +205,7 @@ var terrain = new Terrain([
 		match.run().then(function (m) {
       console.log("randomAbstractedGame");
       console.log(m.result());
-      
+
 		});
   },
 
@@ -219,7 +220,7 @@ var terrain = new Terrain([
       match.events.on('begin', function (game, match) {
         var terrain=  game.concreteGame.terrain;
             window.RENDERER.render(game.concreteGame);
-  
+
       });
       match.events.on('move', function (game, moves, match) {
         console.log(Sermat.ser(moves));
@@ -244,9 +245,6 @@ var terrain = new Terrain([
 		window.match = new ludorum.Match(this.example1(), players);
 		match.events.on('begin', function (game, match) {
 			window.RENDERER.render(game);
-			//var terrain=  game.terrain;
-			//terrain.loadUnitsBut(game,terrain.terrain);
-			//window.RENDERER.renderGrid(terrain.terrain);
 		});
 
 		match.events.on('move', function (game, moves, match) {
@@ -263,5 +261,126 @@ var terrain = new Terrain([
 		match.run().then(function (m) {
 			console.log(m.result());
 		});
-	}
+	},
+
+  conPesosDS_vs_sinPesosDS: function conPesosDS_vs_sinPesosDS() { //FIXME window
+    var players = [
+      new DynamicScriptingPlayer(),
+      new DynamicScriptingSinPesosPlayer()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+
+  sinPesosDS_vs_conPesosDS: function sinPesosDS_vs_conPesosDS() { //FIXME window
+    var players = [
+      new DynamicScriptingSinPesosPlayer(),
+      new DynamicScriptingPlayer()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+
+  conPesosDS_vs_random: function conPesosDS_vs_random() { //FIXME window
+    var RandomPlayer = ludorum.players.RandomPlayer;
+    var players = [
+      new DynamicScriptingPlayer(),
+      new RandomPlayer()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+
+  sinPesosDS_vs_random: function sinPesosDS_vs_random() { //FIXME window
+    var RandomPlayer = ludorum.players.RandomPlayer;
+    var players = [
+      new DynamicScriptingSinPesosPlayer(),
+      new RandomPlayer()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+
+  randomAbstractedTest: function randomAbstractedTest(player1, player2) { //FIXME window
+    var RandomPlayer = ludorum.players.RandomPlayer,
+      players = [
+        player1 || new RandomPlayer(),
+        player2 || new RandomPlayer()
+      ];
+      game = new AbstractedWargame(this.example1());
+    window.match = new ludorum.Match(game, players);
+    match.events.on('begin', function (game, match) {
+      var terrain=  game.concreteGame.terrain;
+          window.RENDERER.render(game.concreteGame);
+
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+    });
+    match.events.on('next', function (game, next, match) {
+      var terrain=  next.concreteGame.terrain;
+      window.RENDERER.render(next.concreteGame);
+    });
+    match.run().then(function (m) {
+      console.log("randomAbstractedGame");
+      console.log(m.result());
+
+    });
+  }
 }; // scenarios

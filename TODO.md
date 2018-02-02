@@ -2,7 +2,7 @@
 
 ## Core and dependencies
 
-+ Test the new `EnsemblePlayer` with many MCTS players running in webworkers to check MCTS paralelization.
++ Check the parallelization of UCT using `EnsemblePlayer` with webworkers.
 
 ## Game logic
 
@@ -11,7 +11,8 @@
 
 ## MCTS player
 
-+ Update and finish the influence map implementation.
++ Debug `randomAbstractGame` test. Units do not seem to move properly.
++ Test the influence map implementation in the strategic-tactic mapping with `AbstractedWargame`.
 + Make an search algorithm (probably based on A*) to get a path or paths from a shooter's position to a position from which a target can be shot.
 + Optimization of the strategic-tactic mapping, generating directly the tactic actions instead of using the method `Wargame.moves()`.
 
