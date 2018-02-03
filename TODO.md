@@ -22,3 +22,7 @@
 + Add a test case with a match between two DS players, one with and another without weight adjustment.
 + Verify (and fix if required) the rules tha involve assaults.
 
+## Tests
+
++ Implement cheating random players for testing. These are random players with trick dice.
+
