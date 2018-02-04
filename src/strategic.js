@@ -1,3 +1,5 @@
+
+
 /** # AbstractedWargame
 
 An astracted wargame provides a strategic level by hiding part of the complexity of the wargame. The
@@ -10,102 +12,82 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		this.targetId = targetId;
 	},
 
-	executeMovement: function executeMovement(game, actions, update) {
+	executeMovement: function executeMovement(game, moves, update) {
 		var activePlayer = game.activePlayer(),
-			shooter = this.unitById(game, this.unitId),
+			attacker = this.unitById(game, this.unitId),
 			target = this.unitById(game, this.targetId),
-			moves = actions.filter(function (m) {
-				if (m instanceof MoveAction) {	//Desicion basada en influencia decidiendo si moverme o moverme para atacar //puede romper los movimientos
-												//
-												// Me da los movimientos en base a distancia directa,
-												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
-												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
-												//Deberia ir ya deberian estar ordenadas por estos
-					m.__distance__ = game.terrain.distance(m.position, target.position);
-					return true;
-				} else {
-					return false;
-				}// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
-			}),
+			canShootThisTurn=moves.shootPositions,
+			canAssaultThisTurn =moves.assaultPositions,
+			canMoveThisTurn =moves.movePositions;
 
-			approaches= moves.filter(function (m) {
-				//range = shooter.model.range
-				 //si ya la calcule para la unidad la deberia usar no la deberia pasar entre turno y turno pero deberia mantenersepor el turno
-				m.__range__ = game.terrain.canShoot(shooter, target);
-				return m.__range__ !== Infinity;
+		if (canShootThisTurn.length > 0) {
+			canShootThisTurn.sort(function (m1, m2) {//Sort por influencia tambien
+				return m1.influence - m2.influence;
 			});
-			//hooter.areaOfSight=areaOfSight;
-		//	console.log("moves"+moves);
-
-		//	console.log("ap"+approaches);
-		if (approaches.length > 0) {
-			approaches.sort(function (m1, m2) {//Sort por influencia tambien
-				return m1.__range__ - m2.__range__;
-			});
-			return game.next(obj(activePlayer, approaches[0]), null, update);
-		} else {
-			moves.sort(function (m1, m2) { //Si no hay disparo me muevo
-											//Esto tambien deberia hacerlo por influencia y menos pasos// si primero o influencia
-				return m1.__distance__ - m2.__distance__;
-			});
-
-			return game.next(obj(activePlayer, moves[0]), null, update);
+			
+			game=game.next(obj(activePlayer,new MoveAction(attacker.id, canShootThisTurn[0].position,false)), null, update);
+			game=game.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
+			if (game.isContingent) {
+				game = game.randomNext();
+			}	
+		}else {
+			game=game.next(obj(activePlayer, new MoveAction(attacker.id, canMoveThisTurn[canMoveThisTurn.length-1].position,true)), null, update);
 		}
+		game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
 
+		return game;
 	},
 
 
-	getShots: function getShots(game, actions) {
-		var attack = this;
-		actions = actions || game.moves()[game.activePlayer()];
-		return actions.filter(function (m) {
-			return m instanceof ShootAction && m.targetId === attack.targetId;
-		});
-	},
-
-	strategicMoves:function strategicMoves(abstractedGame,influenceMap){
+	strategicPositions:function strategicPositions(abstractedGame,influenceMap,areaOfSight){
+		
 		var g = abstractedGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
-			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange());
+			moves,
+			posibleActions={movePositions:[],shootPositions:[],assaultPositions:[]};
 		if (influenceMap){
-			return g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
+			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap});
+			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
+		}else{
+			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
 		}
-		return g.terrain.canReachAStar({target:target,attacker:attacker,exitCondition:areaOfSight});
+		
+		moves.forEach(function(pos,index) {
+			var shootDistance= areaOfSight[pos.x+","+pos.y],
+				influence=influenceMap[pos.x][pos.y],
+				canShootThisTurn= index<=6 && shootDistance!==undefined,
+				canAssaultThisTurn = shootDistance<=2,
+				canMoveThisTurn = index <=12;
+			if (canShootThisTurn){ //CanShootThisTurn
+				posibleActions.shootPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});
+			}else if (canMoveThisTurn){
+				posibleActions.movePositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
+			}else if (canAssaultThisTurn){
+				posibleActions.assaultPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
+			}
+		});
+		return posibleActions;
+		
+
 	},
+
 	execute: function execute(abstractedGame, update) {
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
 			activePlayer = g.activePlayer(),
-			attack=this;
+			attack=this,
+			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence,areaOfSight);
 		
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
-		RENDERER.renderPath(abstractedGame.concreteGame,this.strategicMoves(g,abstractedGame.concreteInfluence));
-		RENDERER.renderPath(abstractedGame.concreteGame,this.strategicMoves(g),"blue");
 
-		var actions = g.moves()[activePlayer],
-			canShoot = g.terrain.canShoot(attacker, target),
-			shots = this.getShots(g, actions);
-		if (canShoot===Infinity) {
-			//FIXME Do not use generated moves, generate them.
-			g = this.executeMovement(g, actions, update);
-			if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-				canShoot = g.terrain.canShoot(attacker, target);
-			}
-		}
-		if (canShoot!==Infinity) {
-			g = g.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
-			if (g.isContingent) {
-				g = g.randomNext();
-			}
-		}
-		if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
-			g = g.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
-		}
-		raiseIf(!(g instanceof Wargame), "Executing action ", this, 
-			" did not yield a Wargame instance!");
+		
+		g = this.executeMovement(g, posibleActions, update);
+
+		raiseIf(!(g instanceof Wargame), "Executing action ", this, " did not yield a Wargame instance!");
 		abstractedGame.concreteGame = g;
 		return abstractedGame;
 	},

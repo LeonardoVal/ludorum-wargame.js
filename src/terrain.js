@@ -156,46 +156,6 @@ var Terrain = exports.Terrain = declare({
 	
 		return visited;
 	},
-
-	/**
-	
-	canReach: function canReach(unit, destination, range) {
-		range = range || 12;
-		var terrain = this,
-			origin = unit.position,
-			visited = {},
-			pending = [unit.position],
-			width = this.width,
-			height = this.height,
-			heuristic={},
-			SURROUNDINGS = this.SURROUNDINGS,
-            	pos, pos2, cost, cost2, delta, tile;
-		visited[origin] = 0;
-		heuristic[origin] = this.distance(origin, destination);
-
-		for (var i = 0; i < pending.length; i++) {
-			pos = pending[i];
-			if (pos[0] === destination[0] && pos[1] === destination[1]) {
-				return true;
-			}
-			cost = visited[pos];
-			for (var j = 0; j < SURROUNDINGS.length; j++) {
-				delta = SURROUNDINGS[j];
-				cost2 = cost + delta.cost;
-				if (cost2 > range) continue;
-				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
-				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
-				visited[pos2] = cost2;
-				heuristic[pos2] = this.distance(pos2, destination);
-				pending.push(pos2);
-			}
-			pending.sort(function (p1, p2) {
-				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
-			});
-		}
-		return false;
-	},
-	*/
 	canReachAStarInf: function canReachAStarInf(args){
 		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
@@ -216,59 +176,6 @@ var Terrain = exports.Terrain = declare({
 		return d1 + d2+(influenceMap[pos0.x][pos0.y])*-50;
 		
 	},
-	/*
-	canReachVisible: function canReachVisible(unit, destination,influenceMap,areaOfSight) {
-		var terrain = this,
-			origin = unit.position,
-			range = 42,
-			visited = {},
-			pending = [unit.position],
-			width = this.width,
-			height = this.height,
-			matrix=[],
-			heuristic={},
-			inSightTurnsDistance={},
-			distanceVal,
-			canShoot,
-			SURROUNDINGS = this.SURROUNDINGS,
-            	pos, pos2, cost, cost2, delta, tile;
-		visited[origin] = 0;
-		heuristic[origin] = this.distance(origin, destination);
-
-		for (var i = 0; i < pending.length; i++) {
-			pos = pending[i];
-			
-			if (pos[0] === destination[0] && pos[1] === destination[1]) {
-				return inSightTurnsDistance;
-			}
-			cost = visited[pos];
-			for (var j = 0; j < SURROUNDINGS.length; j++) {
-				delta = SURROUNDINGS[j];
-				cost2 = cost + delta.cost;
-				if (cost2 > range) continue;
-				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
-				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
-				visited[pos2] = cost2;
-				distanceVal= this.distance(pos2, destination);
-				heuristic[pos2] =distanceVal;
-				canShoot=distanceVal<=6 && areaOfSight[pos2]!==undefined;
-
-				//this.sparseMatrix(matrix,pos2,{key:"Sight",value:areaOfSight[pos2]});
-				//this.sparseMatrix(matrix,pos2,{key:"Influ",value:influenceMap[pos2]});
-				//this.sparseMatrix(matrix,pos2,{key:"Dist",value:heuristic[pos2]});
-				if (areaOfSight[pos]){	
-					this.undefinedAsignArray(inSightTurnsDistance,canShoot);
-					inSightTurnsDistance[canShoot].push({distance:distanceVal,pos:pos2,influence:influenceMap[pos2[0]][pos2[1]]});
-				}
-				pending.push(pos2);
-			}
-			pending.sort(function (p1, p2) {
-				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
-			});
-		}
-		return inSightTurnsDistance;
-	},
-	*/
 	distanceToTurns:function distanceToTurns(distance){
 		var turns =0;
 		if (distance<=6){
