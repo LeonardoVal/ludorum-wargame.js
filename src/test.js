@@ -34,7 +34,7 @@ exports.test = {
 				terrain: terrain,
 				armies: {
 					Red: new GrimFuture.BattleBrothers({ player: 'Red',
-            units: [[3,10],[3,20],[4,15],[3,2]].map(function (position) {
+            units: [[3,10],[3,20],[3,15],[3,2]].map(function (position) {
 							return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
 						})
 					}),
@@ -216,8 +216,9 @@ var terrain = new Terrain([
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
 			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
-				new ludorum.players.RandomPlayer(),
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
+				
+        new ludorum.players.MonteCarloPlayer({ simulationCount: 500, timeCap: 20000 }),
+        new ludorum.players.RandomPlayer(),
 			],
 			game = new AbstractedWargame(this.example1());
       window.match = new ludorum.Match(game, players);
