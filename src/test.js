@@ -215,9 +215,9 @@ var terrain = new Terrain([
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
-				//new ludorum.players.RandomPlayer(),
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
+			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
+				new ludorum.players.RandomPlayer(),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
 			],
 			game = new AbstractedWargame(this.example1());
       window.match = new ludorum.Match(game, players);

@@ -157,17 +157,21 @@ var Terrain = exports.Terrain = declare({
 		return visited;
 	},
 	canReachAStarInf: function canReachAStarInf(args){
-		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
+		var graph = new ludorum_wargame.Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
-			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
-		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+
+		return result;
 
 	},
 	canReachAStar: function canReachAStar(args){
 		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
-			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
-		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result =graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+
+		return result;
 
 	},
 	heuristicInfluence: function heuristicInfluence(pos0, pos1,influenceMap){

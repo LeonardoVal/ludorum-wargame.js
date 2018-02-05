@@ -108,7 +108,7 @@ var Unit = exports.Unit = declare({
 			.bool('hasMoved', { ignore: true })
 			.bool('isEnabled', { ignore: true })
 		;
-		this.position = new Float32Array(this.position);
+	//	this.position = new Float32Array(this.position);
 	},
 
 	cost: function cost() {

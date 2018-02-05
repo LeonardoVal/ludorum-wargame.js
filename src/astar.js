@@ -153,11 +153,13 @@ var Graph = exports.Graph = declare({
     this.diagonal = !!options.diagonal;
     this.grid = [];
     this.astar=new astar();
-    var node,x,y,valueOfNode,row;
+    var node,x,y,valueOfNode,row,check1,check2;
     for (x = 0; x < terrain.width; x++) {
       this.grid[x] = [];
       for (y = 0; y < terrain.height; y++) {
-          valueOfNode=terrain.isPassable([x,y], true)===true?1: 0;
+          check1= options.start[0] ==x && options.start[1] ==y;
+          check1= options.end[0] ==x && options.end[1] ==y;
+          valueOfNode=(terrain.isPassable([x,y], true) || check1 || check2) ===true?1: 0;
           node = new GridNode(x, y, valueOfNode);
           this.grid[x][y] = node;
           this.nodes.push(node);

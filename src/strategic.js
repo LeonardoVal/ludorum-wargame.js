@@ -22,7 +22,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 
 		if (canShootThisTurn.length > 0) {
 			canShootThisTurn.sort(function (m1, m2) {//Sort por influencia tambien
-				return m1.influence - m2.influence;
+				return m2.influence - m1.influence;
 			});
 			
 			game=game.next(obj(activePlayer,new MoveAction(attacker.id, canShootThisTurn[0].position,false)), null, update);
@@ -33,9 +33,13 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}else {
 			game=game.next(obj(activePlayer, new MoveAction(attacker.id, canMoveThisTurn[canMoveThisTurn.length-1].position,true)), null, update);
 		}
-		game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
-
+		if (game.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
+			game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
+		}
 		return game;
+	},
+	synchronizeMetagame: function synchronizeMetagame() {
+		this.terrain.resetTerrain(this);
 	},
 
 
@@ -52,13 +56,18 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}else{
 			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
 		}
+		moves.unshift({x:attacker.position[0],y:attacker.position[1]});
 		
-		moves.forEach(function(pos,index) {
-			var shootDistance= areaOfSight[pos.x+","+pos.y],
+		for (var i =0; i<moves.length;i++) {
+			var pos=moves[i],
+				shootDistance= areaOfSight[pos.x+","+pos.y],
 				influence=influenceMap[pos.x][pos.y],
-				canShootThisTurn= index<=6 && shootDistance!==undefined,
+				canShootThisTurn= i<=6 && shootDistance!==undefined,
 				canAssaultThisTurn = shootDistance<=2,
-				canMoveThisTurn = index <=12;
+				canMoveThisTurn = i <=12;
+			if ((target.position[0]==pos.x && target.position[1]==pos.y)){
+				continue;
+			}
 			if (canShootThisTurn){ //CanShootThisTurn
 				posibleActions.shootPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});
 			}else if (canMoveThisTurn){
@@ -66,13 +75,14 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			}else if (canAssaultThisTurn){
 				posibleActions.assaultPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
 			}
-		});
+		}
 		return posibleActions;
 		
 
 	},
 
 	execute: function execute(abstractedGame, update) {
+		abstractedGame.concreteGame.synchronizeMetagame();
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
@@ -81,6 +91,11 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
 			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence,areaOfSight);
 		
+
+		if (g.result()){
+			return null;
+
+		}
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
 

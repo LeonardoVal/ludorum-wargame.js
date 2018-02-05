@@ -140,7 +140,7 @@ var Unit = exports.Unit = declare({
 			.bool('hasMoved', { ignore: true })
 			.bool('isEnabled', { ignore: true })
 		;
-		this.position = new Float32Array(this.position);
+	//	this.position = new Float32Array(this.position);
 	},
 
 	cost: function cost() {
@@ -998,17 +998,21 @@ var Terrain = exports.Terrain = declare({
 		return visited;
 	},
 	canReachAStarInf: function canReachAStarInf(args){
-		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
+		var graph = new ludorum_wargame.Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
-			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
-		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+
+		return result;
 
 	},
 	canReachAStar: function canReachAStar(args){
 		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
-			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]];
-		return graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result =graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+
+		return result;
 
 	},
 	heuristicInfluence: function heuristicInfluence(pos0, pos1,influenceMap){
@@ -1461,9 +1465,9 @@ var terrain = new Terrain([
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
-				//new ludorum.players.RandomPlayer(),
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
+			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
+				new ludorum.players.RandomPlayer(),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
 			],
 			game = new AbstractedWargame(this.example1());
       window.match = new ludorum.Match(game, players);
@@ -4909,7 +4913,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 
 		if (canShootThisTurn.length > 0) {
 			canShootThisTurn.sort(function (m1, m2) {//Sort por influencia tambien
-				return m1.influence - m2.influence;
+				return m2.influence - m1.influence;
 			});
 			
 			game=game.next(obj(activePlayer,new MoveAction(attacker.id, canShootThisTurn[0].position,false)), null, update);
@@ -4920,9 +4924,13 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}else {
 			game=game.next(obj(activePlayer, new MoveAction(attacker.id, canMoveThisTurn[canMoveThisTurn.length-1].position,true)), null, update);
 		}
-		game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
-
+		if (game.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
+			game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
+		}
 		return game;
+	},
+	synchronizeMetagame: function synchronizeMetagame() {
+		this.terrain.resetTerrain(this);
 	},
 
 
@@ -4939,13 +4947,18 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}else{
 			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
 		}
+		moves.unshift({x:attacker.position[0],y:attacker.position[1]});
 		
-		moves.forEach(function(pos,index) {
-			var shootDistance= areaOfSight[pos.x+","+pos.y],
+		for (var i =0; i<moves.length;i++) {
+			var pos=moves[i],
+				shootDistance= areaOfSight[pos.x+","+pos.y],
 				influence=influenceMap[pos.x][pos.y],
-				canShootThisTurn= index<=6 && shootDistance!==undefined,
+				canShootThisTurn= i<=6 && shootDistance!==undefined,
 				canAssaultThisTurn = shootDistance<=2,
-				canMoveThisTurn = index <=12;
+				canMoveThisTurn = i <=12;
+			if ((target.position[0]==pos.x && target.position[1]==pos.y)){
+				continue;
+			}
 			if (canShootThisTurn){ //CanShootThisTurn
 				posibleActions.shootPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});
 			}else if (canMoveThisTurn){
@@ -4953,13 +4966,14 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			}else if (canAssaultThisTurn){
 				posibleActions.assaultPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
 			}
-		});
+		}
 		return posibleActions;
 		
 
 	},
 
 	execute: function execute(abstractedGame, update) {
+		abstractedGame.concreteGame.synchronizeMetagame();
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
@@ -4968,6 +4982,11 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
 			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence,areaOfSight);
 		
+
+		if (g.result()){
+			return null;
+
+		}
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
 
@@ -5211,11 +5230,13 @@ var Graph = exports.Graph = declare({
     this.diagonal = !!options.diagonal;
     this.grid = [];
     this.astar=new astar();
-    var node,x,y,valueOfNode,row;
+    var node,x,y,valueOfNode,row,check1,check2;
     for (x = 0; x < terrain.width; x++) {
       this.grid[x] = [];
       for (y = 0; y < terrain.height; y++) {
-          valueOfNode=terrain.isPassable([x,y], true)===true?1: 0;
+          check1= options.start[0] ==x && options.start[1] ==y;
+          check1= options.end[0] ==x && options.end[1] ==y;
+          valueOfNode=(terrain.isPassable([x,y], true) || check1 || check2) ===true?1: 0;
           node = new GridNode(x, y, valueOfNode);
           this.grid[x][y] = node;
           this.nodes.push(node);
