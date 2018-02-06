@@ -108,7 +108,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 	aleatories: function aleatories(game) {
 		var shooter = this.unitById(game),
 			target = this.unitById(game, this.targetId),
-			distance = game.terrain.distance(shooter.position, target.position),
+			distance = game.terrain.canShoot(shooter, target),
 			attackCount = 0;
 		shooter.models.forEach(function (model) {
 			model.equipments.forEach(function (equipment) {
