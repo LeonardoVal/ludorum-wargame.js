@@ -245,13 +245,6 @@ empezando por los enemigos mas peligrosos
 //devuelve true si el shooter puede dispararle al target
  canShoot: function canShoot(game,shooter,target,walking){
    if (!shooter.isDead() && shooter.isEnabled && !target.isDead()){
-     var areaOfSightShooter;
-     if (walking){
-       areaOfSightShooter=shooter.areaOfSight|| game.terrain.areaOfSight(shooter, shooter.maxRange()+6)[0];
-     } else {
-       areaOfSightShooter=shooter.areaOfSight|| game.terrain.areaOfSight(shooter, shooter.maxRange())[0];
-     }
-     shooter.areaOfSight=areaOfSightShooter;
      if (game.terrain.canShoot(shooter,target) != Infinity){
        return true;
      }
@@ -261,8 +254,6 @@ empezando por los enemigos mas peligrosos
  //devuelve true si el assaulter puede asaltar al target
  canAssault: function canAssault(game,assaulter,target){
    if (!assaulter.isDead() && assaulter.isEnabled && !target.isDead()){
-     var areaOfSightAssaulter=assaulter.areaOfSight|| game.terrain.areaOfSight(assaulter, 12 )[0];
-     assaulter.areaOfSight=areaOfSightAssaulter;
      if (game.terrain.canShoot(assaulter,target) <= 12){
        return true;
      }
@@ -2664,21 +2655,23 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  }),
  // si es la cuarta ronda y puede asaltar que asalte.
- /*rule_1D: playerRule(1, function rule_1D(game, player){ //FIXME assault
-   if (game.round === 3){
+ rule_1D: playerRule(12, function rule_1D(game, player){ //FIXME assault
+  //  if (game.round === 3){
      var possibleUnits = this.possibleUnits(game, player);
      for (var i = 0; i < possibleUnits.length; i++) {
        var unitX = possibleUnits[i];
-       var enemyUnits = this.assaultableUnits(game, player, unitX);
+      // var enemyUnits = this.shootableUnits(game, player, unitX);
+        var enemyUnits = this.assaultableUnits(game, player, unitX);
        for (var j = 0; j < enemyUnits.length; j++) {
          var unitY = enemyUnits[j];
          //console.log("rule_1D. assault");
+         console.log("assault!!!");
          return this.assault(unitX,unitY);
        }
      }
-   }
+  //  }
    return null;
- }),*/
+ }),
  // si puede disparar a algo, disparar
  rule_1E: playerRule(1, function rule_1E(game, player){
    var possibleUnits = this.possibleUnits(game, player);

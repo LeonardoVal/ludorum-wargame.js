@@ -48,6 +48,29 @@ exports.test = {
          return game;
 	},
 
+  exampleAssault: function exampleAssault() {
+    var terrain = new Terrain(),
+    ARMY = GrimFuture.BattleBrothers,
+    game = new Wargame({
+      terrain: terrain,
+      armies: {
+        Red: new GrimFuture.BattleBrothers({ player: 'Red',
+          units: [[3,10],[3,20],[4,15],[3,2]].map(function (position) {
+            return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
+          })
+        }),
+        Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
+          units: [[4,10],[4,20],[5,15],[4,2]].map(function (position) {
+            return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
+          })
+        })
+      }
+    });
+       return game;
+},
+
+
+
   exampleDS1: function exampleDS1() {
   var terrain = new Terrain([
       { type: p2.Shape.CIRCLE, radius: 2, x:12, y:24 },
@@ -339,7 +362,7 @@ var terrain = new Terrain([
       new DynamicScriptingSinPesosPlayer(),
       new RandomPlayer()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.exampleAssault(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });

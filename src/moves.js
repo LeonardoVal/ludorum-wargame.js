@@ -143,40 +143,90 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 	}
 }); // declare ShootAction
 
+
+function newPosition(unitPos, targetPos) {
+ if (unitPos[0]<targetPos[0]){
+	 return [targetPos[0]-1,targetPos[1]];
+ }
+ if (unitPos[0]>targetPos[0]){
+	 return [targetPos[0]+1,targetPos[1]];
+ }
+ if (unitPos[1]<targetPos[1]){
+	 return [targetPos[0],targetPos[1]-1];
+ }
+ if (unitPos[1]>=targetPos[1]){
+	return [targetPos[0],targetPos[1]+1];
+ }
+}
 /** ## AssaultAction ###############################################################################
 */
 var AssaultAction = exports.AssaultAction = declare(GameAction, {
+
 	constructor: function AssaultAction(unitId, targetId) {
 		this.unitId = unitId;
 		this.targetId = targetId;
 	},
 
 	aleatories: function aleatories(game) {
-		return null;
+		var assaulter = this.unitById(game),
+			target = this.unitById(game, this.targetId),
+			distance = game.terrain.canShoot(assaulter, target),
+			attackCount = 0;
+		if (distance<=12){
+			assaulter.models.forEach(function (model) {
+				model.equipments.forEach(function (equipment) {
+						attackCount += equipment.attacks;
+				});
+			});
+		}
+		var aleatory = new ShootAleatory(assaulter.quality, target.defense, attackCount);
+		var enemyAttackCount = 0;
+		target.models.forEach(function (enemyModel) {
+			enemyModel.equipments.forEach(function (eq) {
+					enemyAttackCount += eq.attacks;
+			});
+		});
+		var enemyAleatory = new ShootAleatory(target.quality, assaulter.defense, enemyAttackCount);
+		return { wounds: aleatory, enemyWounds: enemyAleatory };
 	},
 
-	//FIXME falta que targetUnit contraataque
+
+
 	execute: function execute(game, haps) {
-		var counterWounds = 0;
 		var wounds = haps.wounds;
 		var targetUnit = this.unitById(game, this.targetId);
+		var unit = this.unitById(game, this.unitId);
+		this.worth = 0;
+		//si hay heridas se las aplica a la unidad enemiga
 		if (wounds > 0) {
 			targetUnit.suffer(game, wounds);
 		}
-		var unit = this.unitById(game, this.unitId);
-		unit.disable(game);
-		//worth
-		this.worth = 0;
-		var targetCost = targetUnit.cost();
+		//si murio la unidad enemiga se suma su coste total
 		if (targetUnit.isDead(game)){
-			this.worth += targetCost;
+			this.worth += targetUnit.cost();
 		}
-		this.worth += targetCost*wounds/targetUnit.size(); //FIXME no funciona correctamente con tought
+		// se suma el coste de cada herida aplicada en la unidad enemiga
+		this.worth += targetUnit.cost()*wounds/targetUnit.size();
+
+		//contraataque
+		var counterWounds = haps.enemyWounds,
+		  livingEnemyModels = targetUnit.livingModels().length;
+		counterWounds = Math.round(livingEnemyModels * counterWounds / targetUnit.size());
+		//si hay heridas se las aplica a la unidad enemiga
+		if (counterWounds > 0) {
+			unit.suffer(game, counterWounds);
+		}
+		//si murio la unidad asaltante se resta su coste total
 		if (unit.isDead(game)){
 			this.worth -= unit.cost();
 		}
-		this.worth -= unit.cost()*counterWounds/unit.size(); //FIXME no funciona correctamente con tought
+		// se resta el coste de cada herida aplicada en la unidad asaltante
+		this.worth -= unit.cost()*counterWounds/unit.size();
 
+		//la unidad asaltante se mueve al lado de la enemiga y se termina el turno
+		var new_position = newPosition(unit.position, targetUnit.position);
+		this.unitById(game).move(game, new_position, false);
+		this.unitById(game, this.unitId).endTurn(game);
 	},
 
 	/** Serialization and materialization using Sermat.

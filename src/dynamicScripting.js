@@ -195,7 +195,19 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 
 adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
-  //FIXME no siempre anda!!!!! 
+  //FIXME no siempre anda!!!!!
+
+  for (reg=0;reg<this.rules.length;reg++){
+    if(this.rules[reg][1]<0){
+      console.log("this.rules[reg][1]<0");
+      console.log(this.rules[reg][0].name);
+    }
+    if(isNaN(this.rules[reg][1])){
+      console.log("isNaN(this.rules[reg][1])");
+      console.log(this.rules[reg][0].name);
+    }
+  }
+
   var reglasAplicadas = [];
   roundActions.forEach(function (ra){
     if (reglasAplicadas.indexOf(ra.__rule__)<0){
@@ -211,7 +223,7 @@ adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame)
   if (diff <0){
     for (reg=0;reg<this.rules.length;reg++){
       if(reglasAplicadas.indexOf(this.rules[reg])<0){
-        this.rules[reg][1] += diff;
+        this.rules[reg][1] -= diff;
       }
     }
   }
@@ -237,19 +249,19 @@ adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame)
       worthDiv10 = action.worth/10;
     }
 
-    for (reg=0; reg<this.rules.length; reg++){
-      // si el valor de la accion es < 0, a cada accion que no sea esta,
-      //se le suma a su regla el valor de esta accion
-      if (worthDiv10<0){
-        if (this.rules[reg][0].name != name){
-           this.rules[reg][1] += worthDiv10;
-        }
-      } else { // si da positivo, a la regla de esta accion se le suma el valor de esta accion
-        if (this.rules[reg][0].name == name){
-           this.rules[reg][1] += worthDiv10;
-        }
-      }
-   }
+  //   for (reg=0; reg<this.rules.length; reg++){
+  //     // si el valor de la accion es < 0, a cada accion que no sea esta,
+  //     //se le suma a su regla el valor de esta accion
+  //     if (worthDiv10<0){
+  //       if (this.rules[reg][0].name != name){
+  //          this.rules[reg][1] -= worthDiv10;
+  //       }
+  //     } else { // si da positivo, a la regla de esta accion se le suma el valor de esta accion
+  //       if (this.rules[reg][0].name == name){
+  //          this.rules[reg][1] += worthDiv10;
+  //       }
+  //     }
+  //  }
  }
 
 },
@@ -511,13 +523,6 @@ empezando por los enemigos mas peligrosos
 //devuelve true si el shooter puede dispararle al target
  canShoot_: function canShoot_(game,shooter,target,walking){
    if (!shooter.isDead() && shooter.isEnabled && !target.isDead()){
-     var areaOfSightShooter;
-     if (walking){
-       areaOfSightShooter=shooter.areaOfSight|| game.terrain.areaOfSight(shooter, shooter.maxRange()+6)[0];
-     } else {
-       areaOfSightShooter=shooter.areaOfSight|| game.terrain.areaOfSight(shooter, shooter.maxRange())[0];
-     }
-     shooter.areaOfSight=areaOfSightShooter;
      if (game.terrain.canShoot(shooter,target) != Infinity){
        return true;
      }
@@ -527,8 +532,6 @@ empezando por los enemigos mas peligrosos
  //devuelve true si el assaulter puede asaltar al target
  canAssault: function canAssault(game,assaulter,target){
    if (!assaulter.isDead() && assaulter.isEnabled && !target.isDead()){
-     var areaOfSightAssaulter=assaulter.areaOfSight|| game.terrain.areaOfSight(assaulter, 12 )[0];
-     assaulter.areaOfSight=areaOfSightAssaulter;
      if (game.terrain.canShoot(assaulter,target) <= 12){
        return true;
      }
@@ -2930,21 +2933,22 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  }),
  // si es la cuarta ronda y puede asaltar que asalte.
- /*rule_1D: playerRule(1, function rule_1D(game, player){ //FIXME assault
-   if (game.round === 3){
-     var possibleUnits = this.possibleUnits(game, player);
-     for (var i = 0; i < possibleUnits.length; i++) {
-       var unitX = possibleUnits[i];
-       var enemyUnits = this.assaultableUnits(game, player, unitX);
-       for (var j = 0; j < enemyUnits.length; j++) {
-         var unitY = enemyUnits[j];
-         //console.log("rule_1D. assault");
-         return this.assault(unitX,unitY);
-       }
-     }
-   }
-   return null;
- }),*/
+ // rule_1D: playerRule(12, function rule_1D(game, player){ //FIXME assault
+ //   console.log("ASSAULT");
+ //  //  if (game.round === 3){
+ //     var possibleUnits = this.possibleUnits(game, player);
+ //     for (var i = 0; i < possibleUnits.length; i++) {
+ //       var unitX = possibleUnits[i];
+ //       var enemyUnits = this.assaultableUnits(game, player, unitX);
+ //       for (var j = 0; j < enemyUnits.length; j++) {
+ //         var unitY = enemyUnits[j];
+ //         //console.log("rule_1D. assault");
+ //         return this.assault(unitX,unitY);
+ //       }
+ //     }
+ //  //  }
+ //   return null;
+ // }),
  // si puede disparar a algo, disparar
  rule_1E: playerRule(1, function rule_1E(game, player){
    var possibleUnits = this.possibleUnits(game, player);

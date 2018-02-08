@@ -191,7 +191,7 @@ var Unit = exports.Unit = declare({
 		var enemyUnits = game.armies[game.opponent()].units,
 			assaulter = this,
 			ret=enemyUnits.filter(function (target) {
-			return game.terrain.canShoot(assaulter, target)!=Infinity;
+			return game.terrain.canShoot(assaulter, target)<=12;
 		}).map(function (target) {
 			return new AssaultAction(assaulter.id, target.id);
 		});
@@ -207,60 +207,6 @@ var Unit = exports.Unit = declare({
 			return new MoveAction(unit.id, [+pos[0], +pos[1]], v > 6);
 		}).toArray();
 	},
-
-	/*FIXME
-	getShootMoveActions: function getShootMoveActions (game,enemyUnit) {
-		var moveShootActions = [],
-			positionAux,
-			objPositions = game.terrain.exploreQueryPaths(this,game.activePlayer(),6);
-		for (var xKey in objPositions) {
-			var xposition=[Number(xKey.split(",")[0]),Number(xKey.split(",")[1])];
-			raiseIf(objPositions[xKey]>6, "Unit ", this.id, " isnt shootEnabled!");
-			positionAux= this.position;
-			this.position= function (game){return xposition;};
-			if (game.terrain.canShoot(game, this, enemyUnit, 6) ){
-				moveShootActions.push([	new MoveAction(this.id,xposition,objPositions[xKey]>6),
-									   	new ShootAction(this.id, target.id)
-									  ]);
-			}
-			this.position= positionAux;
-		}
-		return moveShootActions;
-	},*/
-
-	/**
-	canGo: function (game, position){
-		return this.health() <= 0 ? null : game.terrain.canGo(this.position(game), position);
-	},
-	* /
-	/*
-		canShoot: function canShoot(game,enemyUnit) {
-			var canShoot = false;
-			var unit = this;
-			if (!unit.isDead() && unit.isEnabled && !enemyUnit.isDead()){
-				var distance = game.terrain.canSee(unit, enemyUnit);
-				var livingModels = unit.livingModels();
-				livingModels.forEach(function (model) {
-					model.equipments.forEach(function (eq) {
-						if (eq.range >= distance) {
-							canShoot = true;
-						}
-					});
-				});
-			}
-			return canShoot;
-		},
-
-		canAssault: function canAssault(game,enemyUnit) {
-			if (!this.isDead() && this.isEnabled && !enemyUnit.isDead()){
-				if (game.terrain.canSee(this, enemyUnit) <= 12){
-					return true;
-				}
-			}
-			return false;
-		},
-	*/
-
 	// ### Unit action executions ##################################################################
 
 	/** At the beginning of its turn, every unit in the army becomes enabled, not activated and not
