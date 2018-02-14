@@ -51,7 +51,7 @@ var astar = exports.astar = declare({
         exitCondition=options.exitCondition,
         closestNode = start; // set the start node to be the closest if required
 
-    start.h = heuristic(start, end,options.influenceMap);
+    start.h = heuristic(start, end,options.influenceMap,options.role);
     graph.markDirty(start);
 
     openHeap.push(start);

@@ -49,9 +49,10 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
 			moves,
+			role=g.activePlayer(),
 			posibleActions={movePositions:[],shootPositions:[],assaultPositions:[]};
 		if (influenceMap){
-			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap});
+			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
 			
 			//RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
@@ -65,7 +66,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		for (var i =0; i<moves.length;i++) {
 			var pos=moves[i],
 				shootDistance= areaOfSight[pos.x+","+pos.y],
-				influence=influenceMap[pos.x][pos.y],
+				influence=this.getInf([pos.x,pos.y],role,influenceMap),
 				canShootThisTurn= i<=6 && shootDistance!==undefined,
 				canAssaultThisTurn = shootDistance<=2,
 				canMoveThisTurn = i <=12;
@@ -82,6 +83,14 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 		return posibleActions;
 		
+
+	},
+	getInf:function getInf(pos,role,grid){
+		var x=pos[0],
+			y=pos[1];
+		if (role=="Red")
+			return grid[x][y];
+		return -grid[x][y];
 
 	},
 

@@ -160,7 +160,7 @@ var Terrain = exports.Terrain = declare({
 		var graph = new ludorum_wargame.Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
 			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
-			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap});
+			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap,role:args.role});
 
 		return result;
 
@@ -174,10 +174,19 @@ var Terrain = exports.Terrain = declare({
 		return result;
 
 	},
-	heuristicInfluence: function heuristicInfluence(pos0, pos1,influenceMap){
+	getInf:function getInf(pos,role,grid){
+		var x=pos[0],
+			y=pos[1];
+		if (role=="Red")
+			return grid[x][y];
+		return -grid[x][y];
+
+	},
+	heuristicInfluence: function heuristicInfluence(pos0, pos1,grid,role){
 		var d1 = Math.abs(pos1.x - pos0.x),
-			d2 = Math.abs(pos1.y - pos0.y);
-		return d1 + d2+(influenceMap[pos0.x][pos0.y])*-60;
+			d2 = Math.abs(pos1.y - pos0.y),
+			inf= role=="Red" ? grid[pos0.x][pos0.y]: -grid[pos0.x][pos0.y];
+		return d1 + d2+inf*60;
 		
 	},
 	distanceToTurns:function distanceToTurns(distance){
@@ -304,7 +313,7 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.7,
 	decay: 0.5,
-	iterations: 25,
+	iterations: 50,
 
 	constructor: function InfluenceMap(game, role){
 		this.width= game.terrain.width;
@@ -313,6 +322,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.terrain= game.terrain;
 		//this.role = role;
 		
+	},
+	getInf:function getInf(pos){
+		var x=pos[0],
+			y=pos[1];
+		if (this.role=="Red")
+			return this.grid[x][y];
+		return -this.grid[x][y];
+
 	},
 	matrix:function matrix(dim){
 		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
@@ -335,7 +352,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 			posX,
 			posY;
 		for (var army in game.armies){
-			sign = army === this.role ? +1 : -1;
+			sign = "Red" ===army ? +1 : -1;
 			game.armies[army].units.forEach(function (unit){
 				if (!unit.isDead()) {
 					posX = unit.position[0] |0;
@@ -346,14 +363,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
-					grid[posX][posY] = imap.influence(unit) * sign*1000;
+					grid[posX][posY] = imap.influence(unit,sign) ;
 				}
 			});
 		}
 	},
 
-	influence: function influence(unit) {
-		return unit.worth(); //FIXME Too simple?
+	influence: function influence(unit,sign) {
+		return unit.worth()*sign*1000; //FIXME Too simple?
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -391,16 +408,13 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  "t";
 				}
-				//else if (!isNaN(value)) {
 				else{
 					inf = this.getMomentumInf(grid,r,c,decays);
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
 				}
-				//else ( console.log("error Here");)
 			}
 		}
-		//console.log(Date.now()- start);
 		return oneGrid;
 
     },
