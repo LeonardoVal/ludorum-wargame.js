@@ -54,7 +54,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		if (influenceMap){
 			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
 			
-			//RENDERER.renderInfluence(g,influenceMap);
+			RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
 			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
@@ -184,7 +184,7 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
-		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame);
+		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame,1);
 		return nextGame;
 	},
 

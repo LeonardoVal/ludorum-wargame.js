@@ -313,7 +313,7 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.7,
 	decay: 0.5,
-	iterations: 50,
+	iterations: 25,
 
 	constructor: function InfluenceMap(game, role){
 		this.width= game.terrain.width;
@@ -334,13 +334,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 	matrix:function matrix(dim){
 		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
 	},
-	update: function update(game) {
+	update: function update(game,iterations) {
 		var influenceMap = this,
-			grid = this.grid,
+			grid =game.concreteInfluence|| this.grid,
+			it=iterations || this.iterations,
 			pos;
 		this.role = game.activePlayer();
 		this.unitsInfluences(game);
-		for (var i = 0; i < this.iterations; i++) {
+		for (var i = 0; i < it; i++) {
 			grid=this.spread(grid);
 		}
 		return grid;
