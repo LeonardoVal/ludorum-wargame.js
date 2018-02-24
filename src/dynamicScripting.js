@@ -21,6 +21,8 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
    this.rules = this.ownRules();
    this.sortRules();
    this.roundActions = [];
+   this.playerPossibleUnits = [];
+   this.playerShootableUnits = [];
  },
 
  /** Returns an array with the methods of this object whose name starts with `rule`.
@@ -44,9 +46,11 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 
  sortRuleListByWeight: function sortRuleListByWeight(ruleList) {
-   ruleList.sort(function (r1, r2) {
-     return r2[1] - r1[1];
-   });
+   if (ruleList.length > 0){
+     ruleList.sort(function (r1, r2) {
+       return r2[1] - r1[1];
+     });
+   }
  },
  //devuelve la lista de reglas de la prioridad indicada
  firstRules: function firstRules(game,player,priority){
@@ -71,6 +75,8 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  */
  decision: function decision(game, player) {
    game.synchronizeMetagame();
+   this.playerPossibleUnits = this.possibleUnits(game, player);
+   this.playerShootableUnits = this.allShootableUnits(game, player);
    var rule, actions;
    //[playerArmy, playerUnits, enemyArmy, enemyUnits]
    var armiesAndUnits = this.armiesAndUnits(game,player);
@@ -149,26 +155,10 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  },
 
  attachToMatch: function attachToMatch(game,match){
-  //  var player = this,
-  //    round = 0,
-  //    roundActions = this.roundActions,
-  //    lastRoundGame = game;
-
    var player = this,
      round = 0,
      lastRoundGame = game;
 
-   /*match.events.on('move', function (game, moves, match) {
-     var activePlayer = game.activePlayer();
-     if (activePlayer === game.players[0]) {
-       //console.log("moves[activePlayer]");
-       //console.log(moves[activePlayer]);
-       roundActions = roundActions.concat(moves[activePlayer]);
-       this.roundActions = roundActions;
-       //console.log("roundActions");
-       //console.log(roundActions);
-     }
-   });*/
    match.events.on('next', function (game, next, match) {
      //roundActions = this.roundActions;
      if (!next.isContingent && next.round > round && !game.isContingent) {
@@ -181,9 +171,6 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
        lastRoundGame = game;
      }
    });
-  // return match.run().then(function (m) {
-  //   player.adjustWeights(game,game.players[0],roundActions,lastRoundGame);
-  // });
  },
 
 //en desuso
@@ -196,15 +183,18 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
 
 adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
   //FIXME no siempre anda!!!!!
+  var rules = this.rules;
 
-  for (reg=0;reg<this.rules.length;reg++){
-    if(this.rules[reg][1]<0){
-      console.log("this.rules[reg][1]<0");
-      console.log(this.rules[reg][0].name);
+  for (reg=0;reg<rules.length;reg++){
+    if(rules[reg][1] < 0){
+      console.log("rules[reg][1]<0");
+      console.log(rules[reg][0].name);
+      rules[reg][1] = rules[reg][1]*(-1);
     }
-    if(isNaN(this.rules[reg][1])){
-      console.log("isNaN(this.rules[reg][1])");
-      console.log(this.rules[reg][0].name);
+    if(isNaN(rules[reg][1])){
+      console.log("isNaN(rules[reg][1])");
+      console.log(rules[reg][0].name);
+      raiseIf(isNaN(rules[reg][1]), 'rules[reg][1]');
     }
   }
 
@@ -221,20 +211,19 @@ adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame)
     rap,
     name;
   if (diff <0){
-    for (reg=0;reg<this.rules.length;reg++){
-      if(reglasAplicadas.indexOf(this.rules[reg])<0){
-        this.rules[reg][1] -= diff;
+    for (reg=0;reg<rules.length;reg++){
+      if(reglasAplicadas.indexOf(rules[reg])<0){
+        rules[reg][1] += diff*(-1);
       }
     }
   }
  else { // si diff da positivo se lo sumara una vez a cada regla aplicada en esta ronda
-    for (reg=0;reg<this.rules.length;reg++){
-      if(reglasAplicadas.indexOf(this.rules[reg])>=0){
-        this.rules[reg][1] += diff;
+    for (reg=0;reg<rules.length;reg++){
+      if(reglasAplicadas.indexOf(rules[reg])>=0){
+        rules[reg][1] += diff;
       }
     }
   }
-
   // para cada accion calculo su valor
   for (var roundAction=0; roundAction<roundActions.length; roundAction++){
     var action = roundActions[roundAction];
@@ -263,7 +252,46 @@ adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame)
   //     }
   //  }
  }
+ // this.rules = rules;
 
+},
+// devuelve las unidades que el jugador puede usar en su proxima accion
+possibleUnits: function possibleUnits(game, player){
+  //[playerArmy, playerUnits, enemyArmy, enemyUnits]
+  var playerUnits = this.armiesAndUnits(game,player)[1];
+  var possibleUnits = [];
+  playerUnits.forEach(function (pu) {
+    if ((!pu.isDead()) && (pu.isEnabled) && (!pu.isActive)){
+      possibleUnits.push(pu);
+    }
+  });
+  return possibleUnits;
+},
+// devuelve una lista de unidades enemigas que pueden ser disparadas por la unidad atacante
+shootableUnits: function shootableUnits(game, player, shooter){
+  var shootableUnits = [];
+  var enemyUnits = this.livingEnemyUnits(game,player);
+  var shootActions = shooter.getShootActions(game);
+  shootActions.forEach(function(shootAction){
+    enemyUnits.forEach(function(target){
+      if(shootAction.targetId === target.id){
+        shootableUnits.push(target);
+      }
+    });
+  });
+  return shootableUnits;
+},
+// devuelve una lista de unidades enemigas que pueden ser disparadas por cada unidad aliada
+allShootableUnits: function allShootableUnits(game, player){
+  var allShootableUnits = [];
+  var possibleUnits = this.playerPossibleUnits;
+  for (var i = 0; i < possibleUnits.length; i++) {
+    var shooter = possibleUnits[i];
+    var shooterShootableUnits = [];
+    shooterShootableUnits = this.shootableUnits(game, player, shooter);
+    allShootableUnits[i] = [shooter,shooterShootableUnits];
+  }
+  return allShootableUnits;
 },
  /** The method `adjustWeights` check if the round has changed. If so, it adjusts the weights of
  the rules of the actions executed by the player in the round.
@@ -823,32 +851,7 @@ empezando por los enemigos mas peligrosos
    }
    return 0;
  },
- // devuelve las unidades que el jugador puede usar en su proxima accion
- possibleUnits: function possibleUnits(game, player){
-   //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-   var playerUnits = this.armiesAndUnits(game,player)[1];
-   var possibleUnits = [];
-   for(var pu in playerUnits){
-     if (!playerUnits[pu].isDead() && playerUnits[pu].isEnabled && !playerUnits[pu].isActive){
-       possibleUnits.push(playerUnits[pu]);
-     }
-   }
-   return possibleUnits;
- },
- // devuelve una lista de unidades enemigas que pueden ser disparadas por la unidad atacante
- shootableUnits: function shootableUnits(game, player, shooter){
-   var shootableUnits = [];
-   var enemyUnits = this.livingEnemyUnits(game,player);
-   var shootActions = shooter.getShootActions(game);
-   shootActions.forEach(function(shootAction){
-     enemyUnits.forEach(function(target){
-       if(shootAction.targetId === target.id){
-         shootableUnits.push(target);
-       }
-     });
-   });
-   return shootableUnits;
- },
+
  // devuelve una lista de unidades enemigas que pueden ser asaltadas por la unidad atacante
  assaultableUnits: function assaultableUnits(game, player, assaulter){
    var assaultableUnits = [];
@@ -1187,7 +1190,7 @@ inicial en el juego, luego de un ataque melee realizado por la assaulter a la ta
 /* si es la ronda final y voy perdiendo, y paso a perder si matan a unitX,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2,
 y el coste de X es mayor al de Y2, y el coste de unitX2 es mayor que el de unitX,
-y puede asistir a unitX2 entonces asistir*/
+y puede asistir a unitX2 entonces asistir
 rule_12A: playerRule(12, function rule_12A(game, player){
     if (game.round === 3 && !this.winning(game)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1250,7 +1253,7 @@ y el coste de X es mayor al de Y2, y unitX no puede escapar, entonces asaltar a 
 }),*/
 /* si es la ronda final y voy perdiendo, y queda activacion ganadora y no paso a perder si matan a unitX,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2 mas de la mitad asaltando,
-y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa, */
+y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa,
 rule_12C: playerRule(12, function rule_12C(game, player){ //FIXME assault
     if (game.round === 3 && !this.winning(game) && this.winningActivation(game,player)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1280,7 +1283,7 @@ rule_12C: playerRule(12, function rule_12C(game, player){ //FIXME assault
 /* si es la ronda final y voy perdiendo, y queda una activacion ganadora
  si pueden matar a unitX y van a herirla, si unitX puede matar y va a herir,
  si el costo de unitX es mayor al del que puede mata,
- y la unitX no puede escapar entonces entonces ataca a unitY2*/
+ y la unitX no puede escapar entonces entonces ataca a unitY2
 rule_12D: playerRule(12, function rule_12D(game, player){
     if (game.round === 3 && !this.winning(game) && this.winningActivation(game,player)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1310,7 +1313,7 @@ rule_12D: playerRule(12, function rule_12D(game, player){
 //-------------------------priority 11 ex15-----------------------------------------
 /* si es la ronda final y voy perdiendo,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2 mas de la mitad asaltando,
-y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa, */
+y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa,
 rule_11A: playerRule(11, function rule_11A(game, player){
     if (game.round === 3 && !this.winning(game)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1339,7 +1342,7 @@ rule_11A: playerRule(11, function rule_11A(game, player){
 }),
 /* si es la ronda final y voy ganando, y queda activacion ganadora,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2 mas de la mitad asaltando,
-y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa, */
+y el coste de X es mayor al de Y2, y unitX puede escapar, entonces escapa,
 rule_11B: playerRule(11, function rule_11B(game, player){
     if (game.round === 3 && this.winning(game) && this.winningActivation(game,player)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1368,7 +1371,7 @@ rule_11B: playerRule(11, function rule_11B(game, player){
 }),
 /* si es la ronda final y voy ganando, y queda activacion ganadora,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2 mas de la mitad asaltando,
-y el coste de X es mayor al de Y2, y no unitX puede escapar, entonces asalta a Y2, */ //FIXME assault
+y el coste de X es mayor al de Y2, y no unitX puede escapar, entonces asalta a Y2,   //FIXME assault
 /*rule_11C: playerRule(11, function rule_11C(game, player){
     if (game.round === 3 && this.winning(game) && this.winningActivation(game,player)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1394,10 +1397,10 @@ y el coste de X es mayor al de Y2, y no unitX puede escapar, entonces asalta a Y
       }
     }
  return null;
-}),*/
+}),
 /* si es la ronda final y voy perdiendo, y no queda activacion ganadora y no paso a perder si matan a unitX,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2 mas de la mitad asaltando,
-y el coste de X es mayor al de Y2, entonces asalta, */ //FIXME assault
+y el coste de X es mayor al de Y2, entonces asalta,   //FIXME assault
 /*rule_11D: playerRule(11, function rule_11D(game, player){
     if (game.round === 3 && this.winning(game) && this.winningActivation(game,player)){
       var possibleUnits = this.possibleUnits(game, player);
@@ -1423,10 +1426,10 @@ y el coste de X es mayor al de Y2, entonces asalta, */ //FIXME assault
       }
     }
  return null;
-}),*/
+}),
 //-------------------------priority 10 ex12-----------------------------------------
 /*si ronda = 1 y this.unitIsStrongest(enemyUnits,unitY) y this.willWoundHalfAssaulting(game,unitX,unitY)
-y this.isMelee(unitX) entonces this.assault(unitX,unitY)*/
+y this.isMelee(unitX) entonces this.assault(unitX,unitY)
 /*rule_10A: playerRule(10, function rule_10A(game, player){//FIXME assault
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1445,9 +1448,9 @@ y this.isMelee(unitX) entonces this.assault(unitX,unitY)*/
     }
   }
  return null;
-}),*/
+}),
 /*si ronda = 2 y this.unitIsStrongest(enemyUnits,unitY) y this.willWoundHalfAssaulting(game,unitX,unitY)
-y this.isMelee(unitX) entonces this.assault(unitX,unitY)*/
+y this.isMelee(unitX) entonces this.assault(unitX,unitY)
 /*rule_10B: playerRule(10, function rule_10B(game, player){//FIXME assault
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1466,13 +1469,13 @@ y this.isMelee(unitX) entonces this.assault(unitX,unitY)*/
     }
   }
  return null;
-}),*/
+}),
 
 
 //-------------------------priority 9 ex11-----------------------------------------
 /*si ronda = 2 y this.easiestToKill(enemyUnits,unitY) y
 this.willWoundHalfAssaulting(game,unitX,unitY)
-entonces this.assault(unitX,unitY)*/
+entonces this.assault(unitX,unitY)
 /*rule_9A: playerRule(9, function rule_9A(game, player){ //FIXME assault
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1489,9 +1492,9 @@ entonces this.assault(unitX,unitY)*/
     }
   }
  return null;
-}),*/
+}),
 /*si ronda = 1 y this.easiestToKill(enemyUnits,unitY) y this.willWoundHalfAssaulting(game,unitX,unitY)
-entonces this.assault(unitX,unitY)*/
+entonces this.assault(unitX,unitY)
 /*rule_9B: playerRule(9, function rule_9B(game, player){//FIXME assault
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1508,7 +1511,7 @@ entonces this.assault(unitX,unitY)*/
     }
   }
  return null;
-}),*/
+}),
 
 
 
@@ -1519,7 +1522,7 @@ entonces this.assault(unitX,unitY)*/
 /*si ronda = 3 y !this.canBeKilled(game,player,unitX) y this.winning(game) y
 unitX2.cost()>unitX.cost() y !this.canAssist(game,player,unitX,unitX2) y
 this.willKillShooting(game,unitX,unitY) y unitY.cost() === this.mostExpensiveUnit(enemyUnits).cost()
-entonces this.shoot(unitX,unitY)*/
+entonces this.shoot(unitX,unitY)
 rule_8A: playerRule(8, function rule_8A(game, player){
   if (game.round === 3&&this.winning(game)){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1548,7 +1551,7 @@ rule_8A: playerRule(8, function rule_8A(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitY2.cost() y this.winning(game)
- y entonces this.shoot(unitX,unitY2)*/
+ y entonces this.shoot(unitX,unitY2)
 rule_8B: playerRule(8, function rule_8B(game, player){
   if (game.round === 3 && this.winning(game)){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1577,7 +1580,7 @@ rule_8B: playerRule(8, function rule_8B(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 this.willWoundShooting(game,unitX,unitY2) y unitX.cost()>unitY2.cost() y unitX.cost()<unitX2.cost()
-y this.canAssist(game,player,unitX,unitX2) entonces this.assist(game,player,unitX,unitX2)*/
+y this.canAssist(game,player,unitX,unitX2) entonces this.assist(game,player,unitX,unitX2)
 rule_8C: playerRule(8, function rule_8C(game, player){
   if (game.round === 3&&this.winning(game)){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1611,7 +1614,7 @@ rule_8C: playerRule(8, function rule_8C(game, player){
 }),
 //-------------------------priority 7-----------------------------------------
 /*si ronda = 3 y !this.canBeKilled(game,player,unitX) y unitX2.cost()>unitX.cost()
-y this.canWound(game,unitX,unitY) y this.easiestToKill(enemyUnits,unitY) entonces this.shoot(unitX,unitY)*/
+y this.canWound(game,unitX,unitY) y this.easiestToKill(enemyUnits,unitY) entonces this.shoot(unitX,unitY)
 rule_7A: playerRule(7, function rule_7A(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1640,7 +1643,7 @@ rule_7A: playerRule(7, function rule_7A(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX)
 y puntaje(unidadY2) = maxEnemigos y this.canKill(game,unitX,unitY2) y
-this.willWoundShooting(game,unitX,unitY2) entonces this.shoot(unitX,unitY2)*/
+this.willWoundShooting(game,unitX,unitY2) entonces this.shoot(unitX,unitY2)
 rule_7B: playerRule(7, function rule_7B(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1669,7 +1672,7 @@ rule_7B: playerRule(7, function rule_7B(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 this.canKill(game,unitX,unitY2) y this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitY2.cost()
-entonces this.shoot(unitX,unitY2)*/
+entonces this.shoot(unitX,unitY2)
 rule_7C: playerRule(7, function rule_7C(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1698,7 +1701,7 @@ rule_7C: playerRule(7, function rule_7C(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitY2.cost() y !this.winning(game)
-entonces this.shoot(unitX,unitY2)*/
+entonces this.shoot(unitX,unitY2)
 rule_7D: playerRule(7, function rule_7D(game, player){
   if (game.round === 3 && !this.winning(game)){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1727,7 +1730,7 @@ rule_7D: playerRule(7, function rule_7D(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 !this.willWoundShooting(game,unitX,unitY2) y puntaje(unidadX) <puntaje(unidadX2)
-y this.canAssist(game,player,unitX,unitX2) entonces this.assist(game,player,unitX,unitX2)*/
+y this.canAssist(game,player,unitX,unitX2) entonces this.assist(game,player,unitX,unitX2)
 rule_7E: playerRule(7, function rule_7E(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1760,7 +1763,7 @@ rule_7E: playerRule(7, function rule_7E(game, player){
 }),
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 !this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitX2.cost()
-y !this.canAssist(game,player,unitX,unitX2) y puede escapar unitX entonces this.scape(game,player,unitX)*/
+y !this.canAssist(game,player,unitX,unitX2) y puede escapar unitX entonces this.scape(game,player,unitX)
 rule_7F: playerRule(7, function rule_7F(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1793,7 +1796,7 @@ rule_7F: playerRule(7, function rule_7F(game, player){
 }),
 //-------------------------priority 6-----------------------------------------
 /*si ronda = 3 y !this.canBeKilled(game,player,unitX) y
-dentro de las que puede matar, disparar a la mas cara*/
+dentro de las que puede matar, disparar a la mas cara
 rule_6A: playerRule(6, function rule_6A(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1814,7 +1817,7 @@ rule_6A: playerRule(6, function rule_6A(game, player){
  return null;
 }),
 /*si ronda = 3 y pueden matar a unitX y van a herirla, y unitX va a herir,
-si su costo es menor que el del enemigo, entonces disparale*/
+si su costo es menor que el del enemigo, entonces disparale
 rule_6B: playerRule(6, function rule_6B(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1841,7 +1844,7 @@ rule_6B: playerRule(6, function rule_6B(game, player){
  return null;
 }),
 /*si ronda = 3 y pueden matar a unitX y van a herirla,
-si puede escapar, entonces escapar */
+si puede escapar, entonces escapar
 rule_6C: playerRule(6, function rule_6C(game, player){
   if (game.round === 3){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1864,7 +1867,7 @@ rule_6C: playerRule(6, function rule_6C(game, player){
  return null;
 }),
 //-------------------------priority 5-----------------------------------------
-/*si es la ronda 0 y la unidad puede matar disparando, y va a herir >75%, disparar*/
+/*si es la ronda 0 y la unidad puede matar disparando, y va a herir >75%, disparar
 rule_5A: playerRule(5, function rule_5A(game, player){
   if (game.round === 0){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1882,7 +1885,7 @@ rule_5A: playerRule(5, function rule_5A(game, player){
   }
  return null;
 }),
-/*si es la ronda 1 y la unidad puede matar disparando, y va a herir >75%, disparar*/
+/*si es la ronda 1 y la unidad puede matar disparando, y va a herir >75%, disparar
 rule_5B: playerRule(5, function rule_5B(game, player){
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1900,7 +1903,7 @@ rule_5B: playerRule(5, function rule_5B(game, player){
   }
  return null;
 }),
-/*si es la ronda 2 y la unidad puede matar disparando, y va a herir >75%, disparar*/
+/*si es la ronda 2 y la unidad puede matar disparando, y va a herir >75%, disparar
 rule_5C: playerRule(5, function rule_5C(game, player){
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1919,7 +1922,7 @@ rule_5C: playerRule(5, function rule_5C(game, player){
  return null;
 }),
 /*si es la ronda 1 y la unidad esta herida, la pueden matar
-y va a herirla a la que la puede matar, entonces disparar*/
+y va a herirla a la que la puede matar, entonces disparar
 rule_5D: playerRule(5, function rule_5D(game, player){
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1938,7 +1941,7 @@ rule_5D: playerRule(5, function rule_5D(game, player){
  return null;
 }),
 /*si es la ronda 2 y la unidad esta herida, la pueden matar
-y va a herirla a la que la puede matar, entonces disparar*/
+y va a herirla a la que la puede matar, entonces disparar
 rule_5E: playerRule(5, function rule_5E(game, player){
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1956,7 +1959,7 @@ rule_5E: playerRule(5, function rule_5E(game, player){
   }
  return null;
 }),
-/*si es la ronda 1 y la unidad esta herida, la pueden matar y puede escapar, entonces escapar*/
+/*si es la ronda 1 y la unidad esta herida, la pueden matar y puede escapar, entonces escapar
 rule_5F: playerRule(5, function rule_5F(game, player){
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1974,7 +1977,7 @@ rule_5F: playerRule(5, function rule_5F(game, player){
   }
  return null;
 }),
-/*si es la ronda 2 y la unidad esta herida, la pueden matar y puede escapar, entonces escapar*/
+/*si es la ronda 2 y la unidad esta herida, la pueden matar y puede escapar, entonces escapar
 rule_5G: playerRule(5, function rule_5G(game, player){
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -1998,7 +2001,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
 
 
  //-------------------------priority 4-----------------------------------------
- /*si es la ronda 0 y la unidad puede matar disparando, disparar*/
+ /*si es la ronda 0 y la unidad puede matar disparando, disparar
  rule_4A: playerRule(4, function rule_4A(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2051,7 +2054,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
   return null;
  }),
  /*si es ultima ronda, va ganando, no pueden matar a unitX, hay una unidad aliada unitX2
-  que cuesta mas que unitX, y unitX puede asistirla, hacerlo*/
+  que cuesta mas que unitX, y unitX puede asistirla, hacerlo
  rule_4D: playerRule(4, function rule_4D(game, player){
      if (game.round === 3 && this.winning(game)){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2074,7 +2077,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
  }),
  /*si es ultima ronda, va ganando, no pueden matar a unitX, hay una unidad aliada unitX2
 que cuesta mas, que unitX no puede asistirla, dentro de las unidades heridas enemigas,
-disparar a la mas facil de matar*/
+disparar a la mas facil de matar
  rule_4E: playerRule(4, function rule_4E(game, player){
    if (game.round === 3 && this.winning(game)){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2104,7 +2107,7 @@ disparar a la mas facil de matar*/
 
 
  //-------------------------priority 3-----------------------------------------
-   /*si es la ronda 0 y la unidad es sniper, disparar a la mas fuerte*/
+   /*si es la ronda 0 y la unidad es sniper, disparar a la mas fuerte
    rule_3A: playerRule(3, function rule_3A(game, player){
      if (game.round === 0){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2122,7 +2125,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
-   /*si es la ronda 0 y la q tiene mayor rango, disparar a la mas fuerte*/
+   /*si es la ronda 0 y la q tiene mayor rango, disparar a la mas fuerte
    rule_3B: playerRule(3, function rule_3B(game, player){
      if (game.round === 0){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2140,7 +2143,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
-   /*si es la ronda 0, si hay una unidad aliada herida y puede asistirla, asistirla*/
+   /*si es la ronda 0, si hay una unidad aliada herida y puede asistirla, asistirla
    rule_3C: playerRule(3, function rule_3C(game, player){
      if (game.round === 0){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2159,7 +2162,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
-   /*si es la ronda 1, si hay una unidad aliada herida y puede asistirla, asistirla*/
+   /*si es la ronda 1, si hay una unidad aliada herida y puede asistirla, asistirla
    rule_3D: playerRule(3, function rule_3D(game, player){
      if (game.round === 1){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2178,7 +2181,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
-   /*si es la ronda 2, si hay una unidad aliada herida y puede asistirla, asistirla*/
+   /*si es la ronda 2, si hay una unidad aliada herida y puede asistirla, asistirla
    rule_3E: playerRule(3, function rule_3E(game, player){
      if (game.round === 2){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2198,7 +2201,7 @@ disparar a la mas facil de matar*/
     return null;
    }),
 /*en la ronda 3, si hay una unidad aliada que cueste mas que unitX y puede asistirla,
-   y no pueden matar a unitX, entonces asistir a la aliada*/
+   y no pueden matar a unitX, entonces asistir a la aliada
    rule_3F: playerRule(3, function rule_F(game, player){
      if (game.round === 3){
        var possibleUnits = this.possibleUnits(game, player);
@@ -2223,7 +2226,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
-   /*si es la ronda 0 y hay al menos 2 unidades enemigas vivas, disparar a la mas cara*/
+   /*si es la ronda 0 y hay al menos 2 unidades enemigas vivas, disparar a la mas cara
    rule_3G: playerRule(3, function rule_3G(game, player){
      var possibleUnits = this.possibleUnits(game, player);
      if (game.round === 0){
@@ -2244,7 +2247,7 @@ disparar a la mas facil de matar*/
      return null;
    }),
 /*si ronda = 2 y cantidad(unitX2) < cantidadInicial(unitX2) y
-   puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)*/
+   puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)
 rule_3H: playerRule(3, function rule_3H(game, player){
   if (game.round === 2){
     var possibleUnits = this.possibleUnits(game, player);
@@ -2264,7 +2267,7 @@ rule_3H: playerRule(3, function rule_3H(game, player){
  return null;
 }),
 /*si ronda = 1 y cantidad(unitX2) < cantidadInicial(unitX2) y
-puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)*/
+puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)
 rule_3I: playerRule(3, function rule_3I(game, player){
   if (game.round === 1){
     var possibleUnits = this.possibleUnits(game, player);
@@ -2284,7 +2287,7 @@ rule_3I: playerRule(3, function rule_3I(game, player){
  return null;
 }),
 /*si ronda = 0 y cantidad(unitX2) < cantidadInicial(unitX2) y
-puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)*/
+puedeAsistir(unitX a unitX2) entonces asiste(unitX a unitX2)
 rule_3J: playerRule(3, function rule_3J(game, player){
   if (game.round === 0){
     var possibleUnits = this.possibleUnits(game, player);
@@ -2304,7 +2307,7 @@ rule_3J: playerRule(3, function rule_3J(game, player){
  return null;
 }),
 /*si ronda = 0 y fuerza(unidadY) = maxEnemigos y puedeAtacarSinCaminar(unitX a
-unidadY) entonces dispara(unitX a unidadY)*/
+unidadY) entonces dispara(unitX a unidadY)
 rule_3K: playerRule(3, function rule_3K(game, player){
   if (game.round === 0){
     var possibleUnits = this.possibleUnits(game, player);
@@ -2326,7 +2329,7 @@ rule_3K: playerRule(3, function rule_3K(game, player){
 /*
 Si es la primer ronda, la unitX va a herir a la unidad más fuerte enemiga si le dispara,
  entonces dispararle.
-*/
+
 rule_3L: playerRule(3, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.possibleUnits(game, player);
@@ -2480,7 +2483,7 @@ rule_3S: playerRule(3, function rule_3S(game, player){
 /*
 Si la unitX va a herir a la unidad más fuerte enemiga si le dispara,
 y una unidad aliada está herida entonces asistirla.
-*/
+
 rule_3T: playerRule(3, function rule_3T(game, player){
     var possibleUnits = this.possibleUnits(game, player);
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]
@@ -2507,7 +2510,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
 }),
 
  //-------------------------priority 2-----------------------------------------
- /*si es la ronda 0 y el enemigo esta herido, asaltar a ese enemigo*/ //FIXME assault
+ /*si es la ronda 0 y el enemigo esta herido, asaltar a ese enemigo  //FIXME assault
   /*rule_2A: playerRule(2, function rule_2A(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2524,8 +2527,8 @@ rule_3T: playerRule(3, function rule_3T(game, player){
      }
    }
    return null;
- }),*/
- /*si es la ronda 0, y la unidad es fastAttack, disparar a lo que pueda disparar*/
+ }),
+ /*si es la ronda 0, y la unidad es fastAttack, disparar a lo que pueda disparar
  rule_2B: playerRule(2, function rule_2B(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2543,7 +2546,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
   return null;
  }),
-  /*si es la ronda 1, y la unidad es fastAttack, disparar a lo que pueda disparar*/
+  /*si es la ronda 1, y la unidad es fastAttack, disparar a lo que pueda disparar
  rule_2C: playerRule(2, function rule_2C(game, player){
    if (game.round === 1){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2561,7 +2564,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
   return null;
  }),
-  /*si es la ronda 2, y la unidad es fastAttack, disparar a lo que pueda disparar*/
+  /*si es la ronda 2, y la unidad es fastAttack, disparar a lo que pueda disparar
  rule_2D: playerRule(2, function rule_2D(game, player){
    if (game.round === 2){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2579,7 +2582,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
   return null;
  }),
- /*si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado
  rule_2E: playerRule(2, function rule_2E(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2600,7 +2603,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir*/
+ /*si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir
  rule_2F: playerRule(2, function rule_2F(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2621,7 +2624,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 1, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 1, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado
  rule_2G: playerRule(2, function rule_2G(game, player){
    if (game.round === 1){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2642,7 +2645,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 1, y la unidad es heavySupport, asistir a lo que pueda asistir*/
+ /*si es la ronda 1, y la unidad es heavySupport, asistir a lo que pueda asistir
  rule_2H: playerRule(2, function rule_2H(game, player){
    if (game.round === 1){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2663,7 +2666,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 2, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 2, y la unidad es heavySupport, asistir a lo que pueda asistir, que ya haya jugado
  rule_2I: playerRule(2, function rule_2I(game, player){
    if (game.round === 2){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2684,7 +2687,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 2, y la unidad es heavySupport, asistir a lo que pueda asistir*/
+ /*si es la ronda 2, y la unidad es heavySupport, asistir a lo que pueda asistir
  rule_2J: playerRule(2, function rule_2J(game, player){
    if (game.round === 2){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2705,7 +2708,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 0, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 0, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado
  rule_2K: playerRule(2, function rule_2K(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2726,7 +2729,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 0, y la unidad es troop, asistir a lo que pueda asistir*/
+ /*si es la ronda 0, y la unidad es troop, asistir a lo que pueda asistir
  rule_2L: playerRule(2, function rule_2L(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2747,7 +2750,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 1, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 1, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado
  rule_2M: playerRule(2, function rule_2M(game, player){
    if (game.round === 1){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2768,7 +2771,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 1, y la unidad es troop, asistir a lo que pueda asistir*/
+ /*si es la ronda 1, y la unidad es troop, asistir a lo que pueda asistir
  rule_2N: playerRule(1, function rule_2N(game, player){
    if (game.round === 0){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2789,7 +2792,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado*/
+ /*si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir, que ya haya jugado
  rule_2O: playerRule(2, function rule_2O(game, player){
    if (game.round === 2){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2810,7 +2813,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir*/
+ /*si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir
  rule_2P: playerRule(2, function rule_2P(game, player){
    if (game.round === 2){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2832,7 +2835,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  }),
 
- /*si es la ronda 0, y la unidad es sniper, disparar a lo que pueda disparar*/
+ /*si es la ronda 0, y la unidad es sniper, disparar a lo que pueda disparar
  rule_2Q: playerRule(2, function rule_2Q(game, player){
    if (game.round === 0 ){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2850,7 +2853,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 1, y la unidad es sniper, disparar a lo que pueda disparar*/
+ /*si es la ronda 1, y la unidad es sniper, disparar a lo que pueda disparar
  rule_2R: playerRule(2, function rule_2R(game, player){
    if (game.round === 1 ){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2868,7 +2871,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
- /*si es la ronda 2, y la unidad es sniper, disparar a lo que pueda disparar*/
+ // si es la ronda 2, y la unidad es sniper, disparar a lo que pueda disparar
  rule_2S: playerRule(2, function rule_2S(game, player){
    if (game.round === 2 ){
      var possibleUnits = this.possibleUnits(game, player);
@@ -2948,28 +2951,57 @@ rule_3T: playerRule(3, function rule_3T(game, player){
  //     }
  //  //  }
  //   return null;
- // }),
+ // }),*/
  // si puede disparar a algo, disparar
+ // rule_1E: playerRule(1, function rule_1E(game, player){
+ //   var possibleUnits = this.possibleUnits(game, player);
+ //   for (var i = 0; i < possibleUnits.length; i++) {
+ //     var unitX = possibleUnits[i];
+ //     var enemyUnits = this.shootableUnits(game, player, unitX);
+ //     for (var j = 0; j < enemyUnits.length; j++) {
+ //       var unitY = enemyUnits[j];
+ //       //console.log("rule_1E. shoot");
+ //       return this.shoot(unitX,unitY);
+ //     }
+ //   }
+ //   return null;
+ // }),
  rule_1E: playerRule(1, function rule_1E(game, player){
-   var possibleUnits = this.possibleUnits(game, player);
+   var possibleUnits = this.playerPossibleUnits;
+
+
    for (var i = 0; i < possibleUnits.length; i++) {
      var unitX = possibleUnits[i];
-     var enemyUnits = this.shootableUnits(game, player, unitX);
-     for (var j = 0; j < enemyUnits.length; j++) {
-       var unitY = enemyUnits[j];
-       //console.log("rule_1E. shoot");
-       return this.shoot(unitX,unitY);
+     var enemyShootableUnits = [];
+     for (var psu=0; psu < this.playerShootableUnits.length; psu++){
+      if(this.playerShootableUnits[psu[0]]==unitX){
+        enemyShootableUnits = this.playerShootableUnits[psu[1]];
+      }
+     }
+    if (enemyShootableUnits.length>0){
+     //var enemyUnits = this.shootableUnits(game, player, unitX);
+      for (var j = 0; j < enemyShootableUnits.length; j++) {
+         var unitY = enemyShootableUnits[j];
+         //console.log("rule_1E. shoot");
+         return this.shoot(unitX,unitY);
+       }
      }
    }
    return null;
  }),
- // si no puede disparar a nada, moverse
  rule_1F: playerRule(1, function rule_1F(game, player){
-   var enemyUnits = this.livingEnemyUnits(game, player),
-     possibleUnits = this.possibleUnits(game, player);
+   //var enemyUnits = this.livingEnemyUnits(game, player),
+   var possibleUnits = this.playerPossibleUnits;
    for (var i = 0; i < possibleUnits.length; i++) {
      var unitX = possibleUnits[i];
-     if (this.shootableUnits(game, player, unitX).length==0){
+     var enemyShootableUnits = [];
+     for (var psu=0; psu < this.playerShootableUnits.length; psu++){
+      if(this.playerShootableUnits[psu[0]]==unitX){
+        enemyShootableUnits = this.playerShootableUnits[psu[1]];
+      }
+     }
+     if (enemyShootableUnits.length==0){
+       var enemyUnits = this.livingEnemyUnits(game, player);
        for (var k=0; k<enemyUnits.length;k++){
          var eu = enemyUnits[k];
          if (this.easiestToKill(enemyUnits,eu)){
@@ -2981,6 +3013,24 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  })
+ // si no puede disparar a nada, moverse
+ // rule_1F: playerRule(1, function rule_1F(game, player){
+ //   var enemyUnits = this.livingEnemyUnits(game, player),
+ //     possibleUnits = this.possibleUnits(game, player);
+ //   for (var i = 0; i < possibleUnits.length; i++) {
+ //     var unitX = possibleUnits[i];
+ //     if (this.shootableUnits(game, player, unitX).length==0){
+ //       for (var k=0; k<enemyUnits.length;k++){
+ //         var eu = enemyUnits[k];
+ //         if (this.easiestToKill(enemyUnits,eu)){
+ //           //console.log("rule_1F. move");
+ //           return this.getCloseTo(game,unitX,eu);
+ //         }
+ //       }
+ //     }
+ //   }
+ //   return null;
+ // })
 
 }); // declare DynamicScriptingPlayer
 
