@@ -6,8 +6,8 @@
 
 ## Game logic
 
-+ Implement `AssaultAction`.
-+ Terrain management general optimizations. 
++ Implement `AssaultAction` with all the Pinned logic.
++ Terrain management general optimizations.
 
 ## MCTS player
 
@@ -20,9 +20,8 @@
 
 + Add test cases for the DS player against random players in the base and abstract game. Put them in the HTML console and `test.js`.
 + Add a test case with a match between two DS players, one with and another without weight adjustment.
-+ Verify (and fix if required) the rules tha involve assaults.
++ Add a test case with a match between DS and Basic Rule Players (DS without weight and with only a few basic rules)
 
 ## Tests
 
 + Implement cheating random players for testing. These are random players with trick dice.
-
