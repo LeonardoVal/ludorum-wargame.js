@@ -343,7 +343,7 @@ var terrain = new Terrain([
       window.RENDERER.render(game);
     });
     match.events.on('move', function (game, moves, match) {
-      console.log(Sermat.ser(moves));
+      //console.log(Sermat.ser(moves));
       window.RENDERER.renderSight(game);
     });
     match.events.on('next', function (game, next, match) {
