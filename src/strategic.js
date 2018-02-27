@@ -89,7 +89,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		if (g.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
 			g = g.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
 		}
-		raiseIf(!(g instanceof Wargame), "Executing action ", this, 
+		raiseIf(!(g instanceof Wargame), "Executing action ", this,
 			" did not yield a Wargame instance!");
 		abstractedGame.concreteGame = g;
 		return abstractedGame;

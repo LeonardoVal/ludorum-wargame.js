@@ -380,6 +380,121 @@ var terrain = new Terrain([
     });
   },
 
+  conPesosDS_vs_random_Abstracted: function conPesosDS_vs_random_Abstracted() { //FIXME window
+    var RandomPlayer = ludorum.players.RandomPlayer,
+      players = [
+        new DynamicScriptingPlayer(),
+        new RandomPlayer()
+      ];
+    var game = new AbstractedWargame(this.example1());
+    window.match = new ludorum.Match(game, players);
+    match.events.on('begin', function (game, match) {
+      var terrain=  game.concreteGame.terrain;
+          window.RENDERER.render(game.concreteGame);
+
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+    });
+    match.events.on('next', function (game, next, match) {
+      var terrain=  next.concreteGame.terrain;
+      window.RENDERER.render(next.concreteGame);
+    });
+    match.run().then(function (m) {
+      console.log("conPesosDS_vs_random_Abstracted");
+      console.log(m.result());
+
+    });
+  },
+  conPesosDS_vs_BasicRulePlayer_shoot: function conPesosDS_vs_BasicRulePlayer_shoot() { //FIXME window
+    var players = [
+      new DynamicScriptingPlayer(),
+      new BasicRulePlayer_shoot()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+  conPesosDS_vs_BasicRulePlayer_assault: function conPesosDS_vs_BasicRulePlayer_assault() { //FIXME window
+    var players = [
+      new DynamicScriptingPlayer(),
+      new BasicRulePlayer_assault()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+  conPesosDS_vs_BasicRulePlayer_assist: function conPesosDS_vs_BasicRulePlayer_assist() { //FIXME window
+    var players = [
+      new DynamicScriptingPlayer(),
+      new BasicRulePlayer_assist()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+  conPesosDS_vs_BasicRulePlayer_scape_then_shoot: function conPesosDS_vs_BasicRulePlayer_scape_then_shoot() { //FIXME window
+    var players = [
+      new DynamicScriptingPlayer(),
+      new BasicRulePlayer_scape_then_shoot()
+    ];
+    window.match = new ludorum.Match(this.example1(), players);
+    match.events.on('begin', function (game, match) {
+      window.RENDERER.render(game);
+    });
+    match.events.on('move', function (game, moves, match) {
+      console.log(Sermat.ser(moves));
+      window.RENDERER.renderSight(game);
+    });
+    match.events.on('next', function (game, next, match) {
+      if (next instanceof Wargame) {
+        window.RENDERER.render(next);
+      }
+    });
+    match.run().then(function (m) {
+      console.log(m.result());
+    });
+  },
+
   randomAbstractedTest: function randomAbstractedTest(player1, player2) { //FIXME window
     var RandomPlayer = ludorum.players.RandomPlayer,
       players = [

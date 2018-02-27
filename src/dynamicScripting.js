@@ -2910,7 +2910,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  }),
  //si es la cuarta ronda y puede asaltar que asalte.
- rule_1D: playerRule(12, function rule_1D(game, player){
+ rule_1D: playerRule(1, function rule_1D(game, player){
   if (game.round === 3){
      var possibleUnits = this.playerPossibleUnits;
      for (var i = 0; i < possibleUnits.length; i++) {
