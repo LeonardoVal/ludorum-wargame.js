@@ -47,6 +47,44 @@ exports.test = {
 			});
          return game;
 	},
+  example2: function example2() {
+/*
+    */
+  var terrain = new Terrain(),
+    ARMY = GrimFuture.BattleBrothers,
+    game = new Wargame({
+      terrain: terrain,
+      armies: {
+        Red: new GrimFuture.BattleBrothers({ player: 'Red',
+          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
+                new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
+            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+          ]
+        }),
+        Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
+          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
+                new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
+            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
+            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+          ]
+        })
+      }
+    });
+    return game;
+},
 
   exampleAssault: function exampleAssault() {
     var terrain = new Terrain(),
@@ -68,122 +106,6 @@ exports.test = {
     });
        return game;
 },
-
-
-
-  exampleDS1: function exampleDS1() {
-  var terrain = new Terrain([
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:24 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:10 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:15 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:6 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:1 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:3 },
-      { type: p2.Shape.CIRCLE, radius: 2, x:12, y:5 }
-    ]),
-    ARMY = GrimFuture.BattleBrothers,
-    game = new Wargame({
-      terrain: terrain,
-      armies: {
-        Red: new GrimFuture.BattleBrothers({ player: 'Red',
-          units: [[3,2]].map(function (position) {
-            return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-          })
-        }),
-        Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-          units: [[3,4]].map(function (position) {
-            return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-          })
-        })
-      }
-    });
-       return game;
-},
-exampleDS2: function exampleDS2() {
-var terrain = new Terrain([
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:24 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:10 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:15 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:6 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:1 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:3 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:5 }
-  ]),
-  ARMY = GrimFuture.BattleBrothers,
-  game = new Wargame({
-    terrain: terrain,
-    armies: {
-      Red: new GrimFuture.BattleBrothers({ player: 'Red',
-        units: [[3,2]].map(function (position) {
-          return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-        })
-      }),
-      Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-        units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [3,4], models: [new ARMY.MODELS.BattleBrother(1),
-            new ARMY.MODELS.BattleBrother(),new ARMY.MODELS.BattleBrother(),
-            new ARMY.MODELS.BattleBrother(),new ARMY.MODELS.BattleBrother()]})]
-        })
-      }
-  });
-     return game;
-},
-
-exampleDS3: function exampleDS3() {
-  var terrain = new Terrain([
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:24 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:10 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:15 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:6 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:1 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:3 },
-    { type: p2.Shape.CIRCLE, radius: 2, x:12, y:5 }
-  ]),
-  ARMY = GrimFuture.BattleBrothers,
-  game = new Wargame({
-    terrain: terrain,
-    armies: {
-      Red: new GrimFuture.BattleBrothers({ player: 'Red',
-        units: [[3,2]].map(function (position) {
-          return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-        })
-      }),
-      Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-        units: [new ARMY.UNITS.BattleBrothers_Unit({position: [3,4]}),
-        new ARMY.UNITS.SupportBrothers_Unit({position: [5,2]})] //FIXME tiene q ser SupportBrothers_Unit
-      })
-    }
-  });
-     return game;
-},
-exampleDS4: function exampleDS4() {
-var terrain = new Terrain([
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:24 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:10 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:15 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:6 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:1 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:3 },
-    { type: p2.Shape.CIRCLE, radius: 3, x:12, y:5 }
-  ]),
-  ARMY = GrimFuture.BattleBrothers,
-  game = new Wargame({
-    terrain: terrain,
-    armies: {
-      Red: new GrimFuture.BattleBrothers({ player: 'Red',
-        units: [[3,2]].map(function (position) {
-          return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-        })
-      }),
-      Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-        units: [[5,35]].map(function (position) {
-          return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
-        })
-      })
-    }
-  });
-     return game;
-},
-
 
 	randomGame: function randomGame() { //FIXME window
 		var RandomPlayer = ludorum.players.RandomPlayer,
@@ -291,7 +213,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new DynamicScriptingSinPesosPlayer()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -314,7 +236,7 @@ var terrain = new Terrain([
       new DynamicScriptingSinPesosPlayer(),
       new DynamicScriptingPlayer()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -338,7 +260,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new RandomPlayer()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -386,7 +308,7 @@ var terrain = new Terrain([
         new DynamicScriptingPlayer(),
         new RandomPlayer()
       ];
-    var game = new AbstractedWargame(this.example1());
+    var game = new AbstractedWargame(this.example2());
     window.match = new ludorum.Match(game, players);
     match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
@@ -411,7 +333,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_shoot()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -433,7 +355,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_assault()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -455,7 +377,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_assist()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -477,7 +399,7 @@ var terrain = new Terrain([
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_scape_then_shoot()
     ];
-    window.match = new ludorum.Match(this.example1(), players);
+    window.match = new ludorum.Match(this.example2(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });

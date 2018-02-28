@@ -19,8 +19,6 @@
 ## Dynamic Scripting player.
 
 + Add test cases for the DS player against random players in the base and abstract game. Put them in the HTML console and `test.js`.
-+ Add a test case with a match between two DS players, one with and another without weight adjustment.
-+ Add a test case with a match between DS and Basic Rule Players (DS without weight and with only a few basic rules)
 
 ## Tests
 

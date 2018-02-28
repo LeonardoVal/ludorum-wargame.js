@@ -665,14 +665,14 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
  // devuelve true si el porcentaje de daño en el mejor caso de la unidad atacante hacia la defensora es >= 75
  canWoundALot: function canWoundALot(game,attacker,target){
    if (!attacker.isDead() && attacker.isEnabled && !target.isDead()){
-     return bestAttackResult(game,attacker,target)>=75;
+     return this.bestAttackResult(game,attacker,target)>=75;
    }
    return false;
  },
  // devuelve true si el porcentaje de daño en el mejor caso de la unidad atacante hacia la defensora es > 0
  canWound: function canWound(game,attacker,target){
    if (!attacker.isDead() && attacker.isEnabled && !target.isDead()){
-     return bestAttackResult(game,attacker,target)>0;
+     return this.bestAttackResult(game,attacker,target)>0;
    }
    return false;
  },
@@ -745,10 +745,10 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
    //return unit.cost()===this.mostExpensiveUnit(units).cost();
  },
  classification: function classification(unit){ //FIXME: considerar las habilidades
-   if (unit.quality <=2 && unit.defense<=3){
+   if (unit.quality >=4 && unit.defense<=3){
      return "fastAttack";  // si tienen poca defensa y mucha calidad o scouts, strider, flying, fast
    }
-   if (unit.defense>=5){
+   if (unit.defense>=7){
      return "heavySupport"; //tankes o AP(x), regeneration, stealth, tought(x)
    }
    if (unit.size()>=5 && unit.cost()<=130){
@@ -918,35 +918,40 @@ inicial en el juego, luego de un ataque melee realizado por la assaulter a la ta
   return false;
  },
  //si tenes armas de cuerpo a cuerpo con mas ataques que 1 o furiuos o impact(x)
- isMelee: function isMelee(unit){//TODO
-   return false;
-   /*
-  var shootRange = 0;
-  var shootAttacks = 0;
-  for eq in model.equipments{
-    if (eq.range > shootRange){
-      shootRange = eq.range;
-      shootAttacks = eq.attacks;
-    }
-  }
-  for eq in model.equipments{
-    if (eq.range === 0 && eq.attacks >shootAttacks){
+ isMelee: function isMelee(unit){
+   var shootRange = 0;
+   var shootAttacks = 0;
+   var livingModels = unit.livingModels();
+   livingModels.forEach(function (model) {
+       model.equipments.forEach(function (eq) {
+         if (eq.range >= shootRange) {
+           shootRange = eq.range;
+           shootAttacks = eq.attacks;
+         }
+       });
+    });
+    if (shootRange === 0){
       return true;
     }
-  }
-  for eq in model.equipments{
-    if (eq.range === 0 && eq.attacks >1){
-      if ("furiuos" in model.specials || "impact(x)" in model.specials){
-        return true;
-      }
-    }
-  }
-  if (shootRange === 0){
-    return true;
-  }
-  return false;
-  */
-},
+    livingModels.forEach(function (model) {
+       model.equipments.forEach(function (eq) {
+         if (eq.range === 0 && eq.attacks > shootAttacks) {
+           return true;
+         }
+       });
+    });
+    //FIXME considerar las habilidades
+    /*livingModels.forEach(function (model) {
+         model.equipments.forEach(function (eq) {
+           if (eq.range === 0 && eq.attacks > 1) {
+             if ("furiuos" in model.specials || "impact(x)" in model.specials){
+               return true;
+             }
+           }
+         });
+    });*/
+    return false;
+  },
 
  // ## Rules /////////////////////////////////////////////////////////////////
 
@@ -1506,8 +1511,6 @@ y this.canAssist(game,player,unitX,unitX2) entonces this.assist(game,player,unit
 rule_7E: playerRule(7, function rule_7E(game, player){
   if (game.round === 3){
     var possibleUnits = this.playerPossibleUnits;
-    //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-    var units = this.armiesAndUnits(game,player)[1];
     for (var i = 0; i < possibleUnits.length; i++) {
       var unitX = possibleUnits[i];
       var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
@@ -1518,7 +1521,8 @@ rule_7E: playerRule(7, function rule_7E(game, player){
             for (var j = 0; j < enemyShootableUnits.length; j++) {
               var unitY = enemyShootableUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                for (h=0;h<units.length;h++){
+                for (var h=0;h<possibleUnits.length;h++){
+                  var unitX2 = possibleUnits[h];
                   if (unitX.cost()<unitX2.cost()&&this.canAssist(game,player,unitX,unitX2)){
                     console.log("rule_7E. assist");
                     return this.assist(game,player,unitX,unitX2);
@@ -1540,8 +1544,6 @@ puede escapar unitX entonces this.scape(game,player,unitX)*/
 rule_7F: playerRule(7, function rule_7F(game, player){
   if (game.round === 3){
     var possibleUnits = this.playerPossibleUnits;
-    //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-    var units = this.armiesAndUnits(game,player)[1];
     for (var i = 0; i < possibleUnits.length; i++) {
       var unitX = possibleUnits[i];
       var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
@@ -1552,7 +1554,8 @@ rule_7F: playerRule(7, function rule_7F(game, player){
             for (var j = 0; j < enemyShootableUnits.length; j++) {
               var unitY = enemyShootableUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                for (h=0;h<units.length;h++){
+                for (var h=0;h<possibleUnits.length;h++){
+                  var unitX2 = possibleUnits[h];
                   if (unitX.cost()<unitX2.cost()&&!this.canAssist(game,player,unitX,unitX2)){
                     console.log("rule_7F. scape");
                     return this.scape(game,player,unitX);
@@ -2631,7 +2634,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
        if (this.classification(unitX)==="sniper"){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
-           var unitY = enemyUnits[j];
+           var unitY = enemyShootableUnits[j];
            console.log("rule_2R. shoot");
            return this.shoot(unitX,unitY);
          }
@@ -2757,4 +2760,4 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    return null;
  })
 
-}); // declare DynamicScriptingPlayer
+}); // declare DynamicScriptingSinPesosPlayer
