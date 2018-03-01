@@ -27,16 +27,22 @@ var path = require('path'),
 
 // ## Jobs #########################################################################################
 
-var jobFunction = function (ludorum, ludorum_wargame) {
-	var players = [
-		new ludorum.players.RandomPlayer(),
-		new ludorum.players.RandomPlayer()
-	],
-	game = ludorum_wargame.test.example1(),
-	match = new ludorum.Match(game, players);
-	/*match.events.on('move', function (game, moves) {
-		console.log("Performed: ", moves);
-	});*/
+var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
+	var playersByName = {
+        UCT:function (){new ludorum.players.MonteCarloPlayer({ simulationCount: 500, timeCap: 20000 })},
+        RAN:function (){new ludorum.players.RandomPlayer()}
+	},
+	player1= playersByName[playerName1],
+	player2= playersByName[playerName2];
+
+	base.raiseIf(typeof player1 !== 'function', 'Invalid player 1: ', playerName1);
+	base.raiseIf(typeof player2 !== 'function', 'Invalid player 2: ', playerName2);
+
+	
+	var players = [player1(), player2()],
+		game = new AbstractedWargame (ludorum_wargame.test[scenario]()),
+		match = new ludorum.Match(game, players);
+	
 	return match.run().then(function (m) {
 		return m.result();
 	});
@@ -44,27 +50,35 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 5,
-	STATS = new base.Statistics();
+var MATCH_COUNT = 1000,
+	STATS = new base.Statistics(),
+	SCENARIOS = ['example1'],
+	DUELS = ['RAN-RAN'
+	//, 'RAN-UCT', 'UCT-RAN', 'UCT-UCT'
+],
+	FINISHED_COUNT = 0;
 
 base.Future.all(
-	base.Iterable.range(MATCH_COUNT).map(function (i) {
+	base.Iterable.range(MATCH_COUNT).product(DUELS, SCENARIOS).mapApply(function (i, duel, scenario) {
 		return server.schedule({
-			info: 'Match #'+ i,
+			info: 'Match #'+ i +' for duel '+ duel +' in '+ scenario,
 			fun: jobFunction,
 			imports: ['ludorum', 'ludorum-wargame'],
-			args: []
+			args: duel.split('-').concat([scenario])
 		}).then(function (data) {
 			if (data.Red > 0) {
-				STATS.add({ key: 'victories', role: 'Red' }, data.Red);
-				STATS.add({ key: 'defeats', role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
+				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
 			} else if (data.Red < 0) {
-				STATS.add({ key: 'victories', role: 'Blue' }, data.Blue);
-				STATS.add({ key: 'defeats', role: 'Red' }, data.Red);
+				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
 			} else {
-				STATS.add({ key: 'tied' });
+				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
-			server.logger.info('Finished match #'+ i);
+			if (++FINISHED_COUNT % 100 == 0) {
+				server.logger.info('Finished '+ FINISHED_COUNT +'/'+ 
+					(DUELS.length * MATCH_COUNT) +' matches.');
+			}
 		});
 	})
 ).then(function () {
