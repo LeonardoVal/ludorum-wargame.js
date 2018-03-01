@@ -30,9 +30,11 @@ var path = require('path'),
 var jobFunction = function (ludorum, ludorum_wargame) {
 	var players = [
 		new ludorum.players.RandomPlayer(),
+		//new ludorum_wargame.DynamicScriptingPlayer(),
+		//new ludorum_wargame.DynamicScriptingPlayer()
 		new ludorum.players.RandomPlayer()
 	],
-	game = ludorum_wargame.test.example1(),
+	game = ludorum_wargame.test.example2(),
 	match = new ludorum.Match(game, players);
 	/*match.events.on('move', function (game, moves) {
 		console.log("Performed: ", moves);
@@ -44,8 +46,9 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 500,
-	STATS = new base.Statistics();
+var MATCH_COUNT = 1000,
+	STATS = new base.Statistics(),
+	FINISHED_COUNT = 0;
 
 base.Future.all(
 	base.Iterable.range(MATCH_COUNT).map(function (i) {
@@ -64,7 +67,9 @@ base.Future.all(
 			} else {
 				STATS.add({ key: 'tied' });
 			}
-			server.logger.info('Finished match #'+ i);
+			if (++FINISHED_COUNT % 100 == 0) {
+				server.logger.info('Finished match #'+ FINISHED_COUNT);
+			}
 		});
 	})
 ).then(function () {
