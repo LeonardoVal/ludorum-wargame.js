@@ -27,15 +27,23 @@ var path = require('path'),
 
 // ## Jobs #########################################################################################
 
-var jobFunction = function (ludorum, ludorum_wargame) {
-	var players = [
-		new ludorum.players.RandomPlayer(),
-		//new ludorum_wargame.DynamicScriptingPlayer(),
-		//new ludorum_wargame.DynamicScriptingPlayer()
-		new ludorum.players.RandomPlayer()
-	],
-	game = ludorum_wargame.test.example2(),
-	match = new ludorum.Match(game, players);
+var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2) {
+	var playersByName = {
+			RAN: function () {
+				return new ludorum.players.RandomPlayer();
+			},
+			DS: function () {
+				return new ludorum_wargame.DynamicScriptingPlayer();
+			}
+		},
+		player1 = playersByName[playerName1],
+		player2 = playersByName[playerName2];
+	base.raiseIf(typeof player1 !== 'function', 'Invalid player 1: ', playerName1);
+	base.raiseIf(typeof player2 !== 'function', 'Invalid player 2: ', playerName2);
+	var
+		players = [player1(), player2()],
+		game = ludorum_wargame.test.example2(),
+		match = new ludorum.Match(game, players);
 	/*match.events.on('move', function (game, moves) {
 		console.log("Performed: ", moves);
 	});*/
@@ -48,27 +56,29 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 
 var MATCH_COUNT = 1000,
 	STATS = new base.Statistics(),
+	DUELS = ['RAN-RAN', 'RAN-DS', 'DS-RAN', 'DS-DS'],
 	FINISHED_COUNT = 0;
 
 base.Future.all(
-	base.Iterable.range(MATCH_COUNT).map(function (i) {
+	base.Iterable.range(MATCH_COUNT).product(DUELS).mapApply(function (i, duel) {
 		return server.schedule({
-			info: 'Match #'+ i,
+			info: 'Match #'+ i +' for duel '+ duel +'.',
 			fun: jobFunction,
 			imports: ['ludorum', 'ludorum-wargame'],
-			args: []
+			args: duel.split('-')
 		}).then(function (data) {
 			if (data.Red > 0) {
-				STATS.add({ key: 'victories', role: 'Red' }, data.Red);
-				STATS.add({ key: 'defeats', role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'victories', duel: duel, role: 'Red' }, data.Red);
+				STATS.add({ key: 'defeats', duel: duel, role: 'Blue' }, data.Blue);
 			} else if (data.Red < 0) {
-				STATS.add({ key: 'victories', role: 'Blue' }, data.Blue);
-				STATS.add({ key: 'defeats', role: 'Red' }, data.Red);
+				STATS.add({ key: 'victories', duel: duel, role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'defeats', duel: duel, role: 'Red' }, data.Red);
 			} else {
-				STATS.add({ key: 'tied' });
+				STATS.add({ key: 'tied', duel: duel });
 			}
 			if (++FINISHED_COUNT % 100 == 0) {
-				server.logger.info('Finished match #'+ FINISHED_COUNT);
+				server.logger.info('Finished '+ FINISHED_COUNT +'/'+ 
+					(DUELS.length * MATCH_COUNT) +' matches.');
 			}
 		});
 	})
