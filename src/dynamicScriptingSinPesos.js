@@ -2106,7 +2106,7 @@ rule_3L: playerRule(3, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.playerPossibleUnits;
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits[3]);
+    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits(game,player)[3]);
     for (var i = 0; i < possibleUnits.length; i++) {
       var unitX = possibleUnits[i];
       var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
