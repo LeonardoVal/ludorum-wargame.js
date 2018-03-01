@@ -1104,7 +1104,7 @@ inicial en el juego, luego de un ataque melee realizado por la assaulter a la ta
     return false;
  },
  //	devuelve true si puede dejar pinned a la unidad
- canPin: function canPin(game,assaulter,target){ //FIXME verificar las reglas
+ canPin: function canPin(game,assaulter,target){ //FIXME cuando puede dejar a la mitad de los modelos iniciales (si es que ahora tiene mas)
   if (this.canAssault(game,assaulter,target)){
     //queda con la mitad o menos de modelos iniciales
     var attackCount = 0;
@@ -2306,12 +2306,12 @@ rule_3K: playerRule(3, function rule_3K(game, player){
  return null;
 }),
 /*Si es la primer ronda, la unitX va a herir a la unidad más fuerte enemiga si le dispara,
- entonces dispararle.*/
-rule_3L: playerRule(3, function rule_3L(game, player){
+ entonces dispararle.*/ //FIXME prioridad es 3
+rule_3L: playerRule(31000, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.playerPossibleUnits;
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits[3]);
+    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits(game,player)[3]);
     for (var i = 0; i < possibleUnits.length; i++) {
       var unitX = possibleUnits[i];
       var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
