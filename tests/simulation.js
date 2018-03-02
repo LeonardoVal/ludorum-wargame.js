@@ -13,7 +13,7 @@ var path = require('path'),
 	ludorum_game_colograph = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
-		port: 8088,
+		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
 		customFiles: [
@@ -29,25 +29,24 @@ var path = require('path'),
 
 var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
 	var playersByName = {
-        UCT10:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity });
+			UCT10:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity });
+			},
+			UCT25:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount: 25, timeCap: Infinity });
+			},
+			UCT50:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount:50, timeCap: Infinity });
+			},
+			RAN:function (){
+				return new ludorum.players.RandomPlayer();
+			}
 		},
-		UCT25:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount: 25, timeCap: Infinity });
-		},
-		UCT50:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount:50, timeCap: Infinity });
-		},
-        RAN:function (){
-			return new ludorum.players.RandomPlayer();
-		}
-	},
-	player1= playersByName[playerName1],
-	player2= playersByName[playerName2];
+		player1= playersByName[playerName1],
+		player2= playersByName[playerName2];
 
 	base.raiseIf(typeof player1 !== 'function', 'Invalid player 1: ', playerName1);
 	base.raiseIf(typeof player2 !== 'function', 'Invalid player 2: ', playerName2);
-
 	
 	var players = [player1(), player2()],
 		game = new ludorum_wargame.AbstractedWargame (ludorum_wargame.test[scenario]()),
@@ -63,22 +62,11 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 var MATCH_COUNT = 100,
 	STATS = new base.Statistics(),
 	SCENARIOS = ['example1'],
-	DUELS = ['RAN-RAN',
-	'RAN-UCT10',
-	'RAN-UCT25',
-	'RAN-UCT50',
-	'UCT10-RAN',
-	'UCT10-UCT10',
-	'UCT10-UCT25',
-	'UCT10-UCT50',
-	'UCT25-RAN',
-	'UCT25-UCT10',
-	'UCT25-UCT25',
-	'UCT25-UCT50',
-	'UCT50-RAN',
-	'UCT50-UCT10',
-	'UCT50-UCT25',
-	'UCT50-UCT50'],
+	DUELS = ['RAN-RAN','RAN-UCT10','RAN-UCT25','RAN-UCT50',
+		'UCT10-RAN','UCT10-UCT10','UCT10-UCT25','UCT10-UCT50',
+		'UCT25-RAN','UCT25-UCT10','UCT25-UCT25','UCT25-UCT50',
+		'UCT50-RAN','UCT50-UCT10','UCT50-UCT25','UCT50-UCT50'
+	],
 	FINISHED_COUNT = 0;
 
 base.Future.all(
@@ -98,9 +86,9 @@ base.Future.all(
 			} else {
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
-			if (++FINISHED_COUNT % 100 == 0) {
+			if (++FINISHED_COUNT % 10 == 0) {
 				server.logger.info('Finished '+ FINISHED_COUNT +'/'+ 
-					(DUELS.length * MATCH_COUNT) +' matches.');
+					(DUELS.length * MATCH_COUNT) +' matches. Statistics:\n'+ STATS);
 			}
 		});
 	})
