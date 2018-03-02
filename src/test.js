@@ -355,7 +355,7 @@ exports.test = {
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_assault()
     ];
-    window.match = new ludorum.Match(this.example2(), players);
+    window.match = new ludorum.Match(this.exampleAssault(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });

@@ -107,6 +107,7 @@ var Unit = exports.Unit = declare({
 			.bool('isActive', { ignore: true })
 			.bool('hasMoved', { ignore: true })
 			.bool('isEnabled', { ignore: true })
+			// .bool('isPinned', { ignore: true })
 		;
 		this.position = new Float32Array(this.position);
 	},
@@ -216,6 +217,7 @@ var Unit = exports.Unit = declare({
 		this.isActive = false;
 		this.hasMoved = false;
 		this.isEnabled = this.health() > 0;
+		// this.isPinned = this.isPinned | false;
 		return this.isEnabled;
 	},
 
@@ -225,6 +227,7 @@ var Unit = exports.Unit = declare({
 		raiseIf(!this.isEnabled, "Unit ", this.id, " is not enabled!");
 		raiseIf(this.isActive, "Unit ", this.id, " is already active!");
 		raiseIf(this.health() <= 0, "Unit ", this.id, " has been eliminated!");
+		// raiseIf(this.isPinned, "Unit ", this.id, " is pinned!");
 
 		this.isActive = true;
 		game.__activeUnit__ = this;
@@ -266,6 +269,11 @@ var Unit = exports.Unit = declare({
 			}
 		}
 		this.isEnabled = this.isEnabled && !this.isDead();
+
+		//FIXME para pinned: si tenia mas de la mitad de los modelos iniciales, y quedo en menos de la mitad tira MoralAleatory, si falla queda pinned.
+		//si ya estaba pinned entonces muere.
+		//console.log("#########################hice pinned");
+
 		return this.isEnabled;
 	},
 

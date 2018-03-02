@@ -179,13 +179,39 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 				});
 			});
 		}
-		var aleatory = new ShootAleatory(assaulter.quality, target.defense, attackCount);
+		var defense = target.defense;
+		// if (target.isPinned){
+		// 	defense = defense - 1;
+		// }
+		var aleatory = new ShootAleatory(assaulter.quality, defense, attackCount);
 		var enemyAttackCount = 0;
 		target.models.forEach(function (enemyModel) {
 			enemyModel.equipments.forEach(function (eq) {
 					enemyAttackCount += eq.attacks;
 			});
 		});
+
+		// var pinnedAleatory;
+		// if (enemyAttackCount < attackCount){
+		// 	//FIXME MoralAleatory no ShootAleatory
+		// 	pinnedAleatory = new ShootAleatory(target.quality, 0, 1);
+		// 	console.log(pinnedAleatory);
+		// 	if (pinnedAleatory>0){
+		// 		console.log("#########################hice pinned");
+		// 	   target.isPinned = true;
+		// 	}
+		// }else {
+		// 	if (enemyAttackCount > attackCount){
+		// 		//FIXME MoralAleatory no ShootAleatory
+		// 		pinnedAleatory = new ShootAleatory(assaulter.quality, 0, 1);
+		// 		if (pinnedAleatory>0){
+		// 			console.log("#########################estoy pinned");
+		// 			 assaulter.isPinned = true;
+		// 		}
+		// 	}
+		// }
+
+
 		var enemyAleatory = new ShootAleatory(target.quality, assaulter.defense, enemyAttackCount);
 		return { wounds: aleatory, enemyWounds: enemyAleatory };
 	},
@@ -301,6 +327,33 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 		identifier: 'ShootAleatory',
 		serializer: function serialize_ShootAleatory(obj) {
 			return [obj.shooterQuality, obj.targetDefense, obj.attackCount];
+		}
+	}
+});
+
+var MoralAleatory = exports.MoralAleatory = declare(ludorum.aleatories.Aleatory, {
+	constructor: function MoralAleatory(quality) {
+		this.quality = quality |0;
+		this.__prob__ = Math.max(0, Math.min(1, (6 - quality + 1) / 6));
+		//FIXME es una única tirada de datos que tiene que superar o igualar la quality
+		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
+		this.__distribution__ = iterable(rs).map(function (p, v) {
+			return [v, p];
+		}).toArray();
+	},
+
+	distribution: function distribution() {
+		return iterable(this.__distribution__);
+	},
+
+	value: function value(random) {
+		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
+	},
+
+	'static __SERMAT__': {
+		identifier: 'MoralAleatory',
+		serializer: function serialize_MoralAleatory(obj) {
+			return [obj.quality];
 		}
 	}
 });
