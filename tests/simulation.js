@@ -13,7 +13,7 @@ var path = require('path'),
 	ludorum_game_colograph = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
-		port: 8088,
+		port: 8888,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
 		customFiles: [
@@ -27,13 +27,35 @@ var path = require('path'),
 
 // ## Jobs #########################################################################################
 
-var jobFunction = function (ludorum, ludorum_wargame) {
-	var players = [
-		new ludorum.players.RandomPlayer(),
-		new ludorum.players.RandomPlayer()
-	],
-	game = ludorum_wargame.test.example1(),
-	match = new ludorum.Match(game, players);
+var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
+	var playersByName = {
+			RAN: function () {
+				return new ludorum.players.RandomPlayer();
+			},
+			DS: function () {
+				return new ludorum_wargame.DynamicScriptingPlayer();
+			},
+			BRP1: function () {
+				return new ludorum_wargame.BasicRulePlayer_assault();
+			},
+			BRP2: function () {
+				return new ludorum_wargame.BasicRulePlayer_assist();
+			},
+			BRP3: function () {
+				return new ludorum_wargame.BasicRulePlayer_scape_then_shoot();
+			},
+			BRP4: function () {
+				return new ludorum_wargame.BasicRulePlayer_shoot();
+			}
+		},
+		player1 = playersByName[playerName1],
+		player2 = playersByName[playerName2];
+	base.raiseIf(typeof player1 !== 'function', 'Invalid player 1: ', playerName1);
+	base.raiseIf(typeof player2 !== 'function', 'Invalid player 2: ', playerName2);
+	var
+		players = [player1(), player2()],
+		game = ludorum_wargame.test[scenario](),
+		match = new ludorum.Match(game, players);
 	/*match.events.on('move', function (game, moves) {
 		console.log("Performed: ", moves);
 	});*/
@@ -44,27 +66,38 @@ var jobFunction = function (ludorum, ludorum_wargame) {
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 500,
-	STATS = new base.Statistics();
+var MATCH_COUNT = 1000,
+	STATS = new base.Statistics(),
+	SCENARIOS = ['example2'],
+	DUELS = ['RAN-RAN', 'RAN-DS', 'DS-RAN', 'DS-DS', 
+		//'BRP1-BRP1', 'BRP1-RAN', 'RAN-BRP1', 'BRP1-DS', 'DS-BRP1',
+		//'BRP2-BRP2', 'BRP2-RAN', 'RAN-BRP2', 'BRP2-DS', 'DS-BRP2',
+		//'BRP3-BRP3', 'BRP3-RAN', 'RAN-BRP3', 'BRP3-DS', 'DS-BRP3',
+		//'BRP4-BRP4', 'BRP4-RAN', 'RAN-BRP4', 'BRP4-DS', 'DS-BRP4'
+	],
+	FINISHED_COUNT = 0;
 
 base.Future.all(
-	base.Iterable.range(MATCH_COUNT).map(function (i) {
+	base.Iterable.range(MATCH_COUNT).product(DUELS, SCENARIOS).mapApply(function (i, duel, scenario) {
 		return server.schedule({
-			info: 'Match #'+ i,
+			info: 'Match #'+ i +' for duel '+ duel +' in '+ scenario,
 			fun: jobFunction,
 			imports: ['ludorum', 'ludorum-wargame'],
-			args: []
+			args: duel.split('-').concat([scenario])
 		}).then(function (data) {
 			if (data.Red > 0) {
-				STATS.add({ key: 'victories', role: 'Red' }, data.Red);
-				STATS.add({ key: 'defeats', role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
+				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
 			} else if (data.Red < 0) {
-				STATS.add({ key: 'victories', role: 'Blue' }, data.Blue);
-				STATS.add({ key: 'defeats', role: 'Red' }, data.Red);
+				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
+				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
 			} else {
-				STATS.add({ key: 'tied' });
+				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
-			server.logger.info('Finished match #'+ i);
+			if (++FINISHED_COUNT % 100 == 0) {
+				server.logger.info('Finished '+ FINISHED_COUNT +'/'+ 
+					(DUELS.length * MATCH_COUNT) +' matches.');
+			}
 		});
 	})
 ).then(function () {
