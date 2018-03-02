@@ -30,13 +30,13 @@ var path = require('path'),
 var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
 	var playersByName = {
         UCT10:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount: 13, timeCap: Infinity });
+			return new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity });
 		},
 		UCT25:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount: 21, timeCap: Infinity });
+			return new ludorum.players.MonteCarloPlayer({ simulationCount: 25, timeCap: Infinity });
 		},
 		UCT50:function (){
-			return new ludorum.players.MonteCarloPlayer({ simulationCount:34, timeCap: Infinity });
+			return new ludorum.players.MonteCarloPlayer({ simulationCount:50, timeCap: Infinity });
 		},
         RAN:function (){
 			return new ludorum.players.RandomPlayer();
@@ -60,10 +60,25 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 10,
+var MATCH_COUNT = 100,
 	STATS = new base.Statistics(),
 	SCENARIOS = ['example1'],
-	DUELS = ['RAN-RAN','RAN-UCT10','UCT10-RAN','UCT10-UCT10'],
+	DUELS = ['RAN-RAN',
+	'RAN-UCT10',
+	'RAN-UCT25',
+	'RAN-UCT50',
+	'UCT10-RAN',
+	'UCT10-UCT10',
+	'UCT10-UCT25',
+	'UCT10-UCT50',
+	'UCT25-RAN',
+	'UCT25-UCT10',
+	'UCT25-UCT25',
+	'UCT25-UCT50',
+	'UCT50-RAN',
+	'UCT50-UCT10',
+	'UCT50-UCT25',
+	'UCT50-UCT50'],
 	FINISHED_COUNT = 0;
 
 base.Future.all(

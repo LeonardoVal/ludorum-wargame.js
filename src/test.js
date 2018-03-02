@@ -46,7 +46,45 @@ exports.test = {
 				}
 			});
          return game;
-	},
+  },
+  example2: function example2() {
+    /*
+        */
+      var terrain = new Terrain(),
+        ARMY = GrimFuture.BattleBrothers,
+        game = new Wargame({
+          terrain: terrain,
+          armies: {
+            Red: new GrimFuture.BattleBrothers({ player: 'Red',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            }),
+            Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            })
+          }
+        });
+        return game;
+    },
 
   exampleDS1: function exampleDS1() {
   var terrain = new Terrain([
