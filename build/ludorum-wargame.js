@@ -998,7 +998,7 @@ var Terrain = exports.Terrain = declare({
 		return visited;
 	},
 	canReachAStarInf: function canReachAStarInf(args){
-		var graph = new ludorum_wargame.Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
+		var graph = new Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
 			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
 			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap,role:args.role});
@@ -1007,7 +1007,7 @@ var Terrain = exports.Terrain = declare({
 
 	},
 	canReachAStar: function canReachAStar(args){
-		var graph = new ludorum_wargame.Graph(this, {diagonal:true}),
+		var graph = new Graph(this, {diagonal:true}),
 			end = graph.grid[args.target.position[0]][args.target.position[1]],
 			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
 			result =graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
@@ -4963,7 +4963,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		if (influenceMap){
 			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
 			
-			RENDERER.renderInfluence(g,influenceMap);
+			//RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
 			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
@@ -5052,7 +5052,7 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		this.players = wargame.players;
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
-		this.influenceMap =new ludorum_wargame.InfluenceMap(wargame);
+		this.influenceMap =new InfluenceMap(wargame);
 		this.concreteInfluence=this.influenceMap.update(wargame);
 
 	},
