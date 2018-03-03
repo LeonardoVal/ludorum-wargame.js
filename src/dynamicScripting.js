@@ -2306,8 +2306,8 @@ rule_3K: playerRule(3, function rule_3K(game, player){
  return null;
 }),
 /*Si es la primer ronda, la unitX va a herir a la unidad más fuerte enemiga si le dispara,
- entonces dispararle.*/ //FIXME prioridad es 3
-rule_3L: playerRule(31000, function rule_3L(game, player){
+ entonces dispararle.*/
+rule_3L: playerRule(3, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.playerPossibleUnits;
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]

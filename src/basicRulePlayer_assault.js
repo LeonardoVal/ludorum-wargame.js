@@ -158,7 +158,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
        var enemyAssaultableUnits = this.enemyAssaultableUnits(game, player, unitX);
        for (var j = 0; j < enemyAssaultableUnits.length; j++) {
          var unitY = enemyAssaultableUnits[j];
-         console.log("rule_100. assault");
+         //console.log("rule_100. assault");
          return this.assault(unitX,unitY);
        }
      }
@@ -173,7 +173,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;

@@ -262,7 +262,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
      for (var j = 0; j < enemyShootableUnits.length; j++) {
        var unitY = enemyShootableUnits[j];
-       console.log("rule_100. shoot");
+       //console.log("rule_100. shoot");
        return this.shoot(unitX,unitY);
      }
    }
@@ -280,7 +280,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
        for (var k=0; k<enemyUnits.length;k++){
          var eu = enemyUnits[k];
          if (this.easiestToKill(enemyUnits,eu)){
-           console.log("rule_1F. move");
+           //console.log("rule_1F. move");
            var move = this.getCloseTo(game,unitX,eu);
            return move;
          }

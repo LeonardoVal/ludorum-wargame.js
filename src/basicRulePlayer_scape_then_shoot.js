@@ -326,6 +326,15 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
    }
    return 0;
  },
+ //devuelve true si el assaulter puede asaltar al target
+canAssault: function canAssault(game,assaulter,target){
+  if (!assaulter.isDead() && assaulter.isEnabled && !target.isDead()){
+    if (game.terrain.canShoot(assaulter,target) <= 12){
+      return true;
+    }
+  }
+  return false;
+},
  // devuelve un porcentaje de destruccion de la unidad defensora tras un asalto de la unidad atacante
  // donde el mejor porcentaje posible: cada ataque supera las tiradas de dados, y el defensor falla los bloqueos
  bestAttackResultAssaulting: function bestAttackResultAssaulting(game,unitX,unitY){
@@ -368,13 +377,13 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
  },
   // ## Rules /////////////////////////////////////////////////////////////////
 
- //si es la primer ronda y puede escaparse que se escape.
+ //si puede escaparse que se escape.
  rule_100: playerRule(100, function rule_100(game, player){
    var possibleUnits = this.playerPossibleUnits;
    for (var i = 0; i < possibleUnits.length; i++) {
      var unitX = possibleUnits[i];
      if (this.canScape(game,player,unitX)){
-         console.log("rule_100. scape");
+         //console.log("rule_100. scape");
          return this.scape(game,player,unitX);
      }
    }
@@ -389,7 +398,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
      for (var j = 0; j < enemyShootableUnits.length; j++) {
        var unitY = enemyShootableUnits[j];
-       console.log("rule_2. shoot");
+       //console.log("rule_2. shoot");
        return this.shoot(unitX,unitY);
      }
    }
@@ -403,7 +412,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;

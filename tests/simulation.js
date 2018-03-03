@@ -69,7 +69,8 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 var MATCH_COUNT = 1000,
 	STATS = new base.Statistics(),
 	SCENARIOS = ['example2'],
-	DUELS = ['RAN-RAN', 'RAN-DS', 'DS-RAN', 'DS-DS', 
+	DUELS = [
+		'RAN-RAN', //'RAN-DS', 'DS-RAN', 'DS-DS',
 		//'BRP1-BRP1', 'BRP1-RAN', 'RAN-BRP1', 'BRP1-DS', 'DS-BRP1',
 		//'BRP2-BRP2', 'BRP2-RAN', 'RAN-BRP2', 'BRP2-DS', 'DS-BRP2',
 		//'BRP3-BRP3', 'BRP3-RAN', 'RAN-BRP3', 'BRP3-DS', 'DS-BRP3',
@@ -95,7 +96,7 @@ base.Future.all(
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
 			if (++FINISHED_COUNT % 100 == 0) {
-				server.logger.info('Finished '+ FINISHED_COUNT +'/'+ 
+				server.logger.info('Finished '+ FINISHED_COUNT +'/'+
 					(DUELS.length * MATCH_COUNT) +' matches.');
 			}
 		});

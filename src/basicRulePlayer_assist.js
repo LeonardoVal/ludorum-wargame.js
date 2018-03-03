@@ -75,7 +75,6 @@ var BasicRulePlayer_assist = exports.BasicRulePlayer_assist = declare(ludorum.Pl
      return [new ActivateAction(unitX.id),moveAction,new EndTurnAction(unitX.id)];
    }
  },
-
  //metodo auxiliar para la funcion assist
  assistAux: function assistAux(game,player,enemyUnits,unitX,unitX2){
    for (var i=0;i<enemyUnits.length;i++){
@@ -501,7 +500,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      for (var j = 0; j < units.length; j++) {
        var unitX2 = units[j];
        if (this.canAssist(game,player,unitX,unitX2)){
-         console.log("rule_100. assist");
+         //console.log("rule_100. assist");
          return this.assist(game,player,unitX,unitX2);
        }
      }
@@ -517,7 +516,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;
