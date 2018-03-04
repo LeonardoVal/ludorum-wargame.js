@@ -16,6 +16,7 @@ var path = require('path'),
 		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
+		maxTaskSize: 1,
 		customFiles: [
 			{ module: ludorum },
 			{ module: ludorum_game_colograph }
