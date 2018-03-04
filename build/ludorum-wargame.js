@@ -813,10 +813,21 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		if (aleatories && !haps) {
 			return new ludorum.Contingent(this, actions, aleatories, update);
 		} else {
-			var nextGame = update ? this : Sermat.clone(this);
+			var nextGame = update ? this : this.clone();
 			action.execute(nextGame, haps);
 			return nextGame.nextTurn();
 		}
+	},
+
+	clone: function clone() {
+		var args = Sermat.clone({
+				__activeUnit__: this.__activeUnit__,
+				armies: this.armies
+			});
+		args.round = this.round;
+		args.rounds = this.rounds;
+		args.terrain = this.terrain;
+		return new this.constructor(args);
 	},
 
 	// ## Serialization ############################################################################
@@ -1538,32 +1549,30 @@ var terrain = new Terrain([
 		});
   },
 
-  randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+	randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+		console.time("randomAbstractedGameDiscrete");
 		var players = [
-			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
-				
-        new ludorum.players.MonteCarloPlayer({ simulationCount: 50, timeCap: Infinity }),
-        new ludorum.players.RandomPlayer(),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity }),
+				new ludorum.players.RandomPlayer(),
 			],
 			game = new AbstractedWargame(this.example1());
-      window.match = new ludorum.Match(game, players);
-      match.events.on('begin', function (game, match) {
-        var terrain=  game.concreteGame.terrain;
-            window.RENDERER.render(game.concreteGame);
-  
-      });
-      match.events.on('move', function (game, moves, match) {
-        console.log(Sermat.ser(moves));
-      });
-      match.events.on('next', function (game, next, match) {
-        var terrain=  next.concreteGame.terrain;
-        window.RENDERER.render(next.concreteGame);
-      });
-      match.run().then(function (m) {
-        console.log("randomAbstractedGameDiscrete");
-        console.log(m.result());
-      });
-    },
+		window.match = new ludorum.Match(game, players);
+		match.events.on('begin', function (game, match) {
+			var terrain=  game.concreteGame.terrain;
+			window.RENDERER.render(game.concreteGame);
+		});
+		match.events.on('move', function (game, moves, match) {
+			console.log(Sermat.ser(moves));
+		});
+		match.events.on('next', function (game, next, match) {
+			var terrain=  next.concreteGame.terrain;
+			window.RENDERER.render(next.concreteGame);
+		});
+		match.run().then(function (m) {
+			console.timeEnd("randomAbstractedGameDiscrete");
+			console.log(m.result());
+		});
+	},
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
@@ -5245,13 +5254,17 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	/**
 	*/
 	next: function next(actions, haps, update) {
-		var nextGame = update ? this : Sermat.clone(this),
+		var nextGame = update ? this : this.clone(),
 			activePlayer = this.activePlayer(),
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
 		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame,1);
 		return nextGame;
+	},
+
+	clone: function clone() {
+		return new this.constructor(this.concreteGame.clone());
 	},
 
 	'static __SERMAT__': {
