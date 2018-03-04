@@ -251,32 +251,30 @@ var terrain = new Terrain([
 		});
   },
 
-  randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+	randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+		console.time("randomAbstractedGameDiscrete");
 		var players = [
-			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
-				
-        new ludorum.players.MonteCarloPlayer({ simulationCount: 50, timeCap: Infinity }),
-        new ludorum.players.RandomPlayer(),
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity }),
+				new ludorum.players.RandomPlayer(),
 			],
 			game = new AbstractedWargame(this.example1());
-      window.match = new ludorum.Match(game, players);
-      match.events.on('begin', function (game, match) {
-        var terrain=  game.concreteGame.terrain;
-            window.RENDERER.render(game.concreteGame);
-  
-      });
-      match.events.on('move', function (game, moves, match) {
-        console.log(Sermat.ser(moves));
-      });
-      match.events.on('next', function (game, next, match) {
-        var terrain=  next.concreteGame.terrain;
-        window.RENDERER.render(next.concreteGame);
-      });
-      match.run().then(function (m) {
-        console.log("randomAbstractedGameDiscrete");
-        console.log(m.result());
-      });
-    },
+		window.match = new ludorum.Match(game, players);
+		match.events.on('begin', function (game, match) {
+			var terrain=  game.concreteGame.terrain;
+			window.RENDERER.render(game.concreteGame);
+		});
+		match.events.on('move', function (game, moves, match) {
+			console.log(Sermat.ser(moves));
+		});
+		match.events.on('next', function (game, next, match) {
+			var terrain=  next.concreteGame.terrain;
+			window.RENDERER.render(next.concreteGame);
+		});
+		match.run().then(function (m) {
+			console.timeEnd("randomAbstractedGameDiscrete");
+			console.log(m.result());
+		});
+	},
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
