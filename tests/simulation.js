@@ -10,17 +10,14 @@ var path = require('path'),
 	capataz = require('capataz'),
 	base = require('creatartis-base'),
 	ludorum = require('ludorum'),
-	ludorum_game_colograph = require('../build/ludorum-wargame'),
+	ludorum_wargame = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
 		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
 		maxTaskSize: 1,
-		customFiles: [
-			{ module: ludorum },
-			{ module: ludorum_game_colograph }
-		],
+		customFiles: [{ module: ludorum }, { module: ludorum_wargame }],
 		logFile: base.Text.formatDate(null, '"./tests/logs/simulation-"yyyymmdd-hhnnss".txt"'),
 		maxDelay: 10000,
 		maxRetries: 1000
@@ -62,7 +59,7 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 
 var MATCH_COUNT = 100,
 	STATS = new base.Statistics(),
-	SCENARIOS = ['example1'],
+	SCENARIOS = ['example2'],
 	DUELS = ['RAN-RAN','RAN-UCT10','RAN-UCT25','RAN-UCT50',
 		'UCT10-RAN','UCT10-UCT10','UCT10-UCT25','UCT10-UCT50',
 		'UCT25-RAN','UCT25-UCT10','UCT25-UCT25','UCT25-UCT50',
