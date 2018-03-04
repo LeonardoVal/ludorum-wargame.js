@@ -43,7 +43,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 	},
 
 
-	strategicPositions:function strategicPositions(abstractedGame,influenceMap,areaOfSight){
+	strategicPositions:function strategicPositions(abstractedGame,influenceMap){
 		
 		var g = abstractedGame,
 			attacker = this.unitById(g, this.unitId),
@@ -57,15 +57,18 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			//RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
-			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
+			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition,influenceMap:influenceMap});
 		}else{
 			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
 		}
 		moves.unshift({x:attacker.position[0],y:attacker.position[1]});
 		
 		for (var i =0; i<moves.length;i++) {
+
+
 			var pos=moves[i],
-				shootDistance= areaOfSight[pos.x+","+pos.y],
+				canShootPos= g.terrain.canShootPos([pos.x,pos.y], target.position, this.unitId,this.targetId,attacker.maxRange()),
+				shootDistance= canShootPos!==Infinity? canShootPos: undefined,
 				influence=this.getInf([pos.x,pos.y],role,influenceMap),
 				canShootThisTurn= i<=6 && shootDistance!==undefined,
 				canAssaultThisTurn = shootDistance<=2,
@@ -101,8 +104,8 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			target = this.unitById(g, this.targetId),
 			activePlayer = g.activePlayer(),
 			attack=this,
-			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
-			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence,areaOfSight);
+		//	areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence);
 		
 
 		if (g.result()){

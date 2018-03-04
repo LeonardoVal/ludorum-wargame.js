@@ -257,6 +257,26 @@ var Terrain = exports.Terrain = declare({
 			return distance;
 		}
 	},
+	canShootPos:function canShootPos(shooterUnitPos, targetUnitPos,shooterUnitId,targetUnitId,maxRange){
+	
+		var distance = this.distance(shooterUnitPos,targetUnitPos);
+		if (distance > maxRange) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnitPos, targetUnitPos, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos].id !== shooterUnitId &&
+						this.__unitsByPosition__[pos].id !== targetUnitId) {
+					return Infinity;
+				}
+			}
+
+			return distance;
+		}
+	},
 
 	
 

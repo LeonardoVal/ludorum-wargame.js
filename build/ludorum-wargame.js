@@ -1098,6 +1098,26 @@ var Terrain = exports.Terrain = declare({
 			return distance;
 		}
 	},
+	canShootPos:function canShootPos(shooterUnitPos, targetUnitPos,shooterUnitId,targetUnitId,maxRange){
+	
+		var distance = this.distance(shooterUnitPos,targetUnitPos);
+		if (distance > maxRange) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnitPos, targetUnitPos, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos].id !== shooterUnitId &&
+						this.__unitsByPosition__[pos].id !== targetUnitId) {
+					return Infinity;
+				}
+			}
+
+			return distance;
+		}
+	},
 
 	
 
@@ -1522,7 +1542,7 @@ var terrain = new Terrain([
 		var players = [
 			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
 				
-        new ludorum.players.MonteCarloPlayer({ simulationCount: 500, timeCap: 20000 }),
+        new ludorum.players.MonteCarloPlayer({ simulationCount: 50, timeCap: Infinity }),
         new ludorum.players.RandomPlayer(),
 			],
 			game = new AbstractedWargame(this.example1());
@@ -5086,7 +5106,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 	},
 
 
-	strategicPositions:function strategicPositions(abstractedGame,influenceMap,areaOfSight){
+	strategicPositions:function strategicPositions(abstractedGame,influenceMap){
 		
 		var g = abstractedGame,
 			attacker = this.unitById(g, this.unitId),
@@ -5100,15 +5120,18 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			//RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
-			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition:areaOfSight,influenceMap:influenceMap});
+			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition,influenceMap:influenceMap});
 		}else{
 			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
 		}
 		moves.unshift({x:attacker.position[0],y:attacker.position[1]});
 		
 		for (var i =0; i<moves.length;i++) {
+
+
 			var pos=moves[i],
-				shootDistance= areaOfSight[pos.x+","+pos.y],
+				canShootPos= g.terrain.canShootPos([pos.x,pos.y], target.position, this.unitId,this.targetId,attacker.maxRange()),
+				shootDistance= canShootPos!==Infinity? canShootPos: undefined,
 				influence=this.getInf([pos.x,pos.y],role,influenceMap),
 				canShootThisTurn= i<=6 && shootDistance!==undefined,
 				canAssaultThisTurn = shootDistance<=2,
@@ -5144,8 +5167,8 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 			target = this.unitById(g, this.targetId),
 			activePlayer = g.activePlayer(),
 			attack=this,
-			areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
-			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence,areaOfSight);
+		//	areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence);
 		
 
 		if (g.result()){

@@ -255,7 +255,7 @@ var terrain = new Terrain([
 		var players = [
 			//	new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: 2000 }),
 				
-        new ludorum.players.MonteCarloPlayer({ simulationCount: 500, timeCap: 20000 }),
+        new ludorum.players.MonteCarloPlayer({ simulationCount: 50, timeCap: Infinity }),
         new ludorum.players.RandomPlayer(),
 			],
 			game = new AbstractedWargame(this.example1());
