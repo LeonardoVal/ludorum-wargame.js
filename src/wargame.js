@@ -128,10 +128,21 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		if (aleatories && !haps) {
 			return new ludorum.Contingent(this, actions, aleatories, update);
 		} else {
-			var nextGame = update ? this : Sermat.clone(this);
+			var nextGame = update ? this : this.clone();
 			action.execute(nextGame, haps);
 			return nextGame.nextTurn();
 		}
+	},
+
+	clone: function clone() {
+		var args = Sermat.clone({
+				__activeUnit__: this.__activeUnit__,
+				armies: this.armies
+			});
+		args.round = this.round;
+		args.rounds = this.rounds;
+		args.terrain = this.terrain;
+		return new this.constructor(args);
 	},
 
 	// ## Serialization ############################################################################
