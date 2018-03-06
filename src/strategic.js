@@ -151,12 +151,16 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	/**
 	*/
 	next: function next(actions, haps, update) {
-		var nextGame = update ? this : Sermat.clone(this),
+		var nextGame = update ? this : this.clone(),
 			activePlayer = this.activePlayer(),
 			action = actions[activePlayer];
 		action.execute(nextGame, update); //FIXME Haps.
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
 		return nextGame;
+	},
+
+	clone: function clone() { 
+		return new this.constructor(this.concreteGame.clone()); 
 	},
 
 	'static __SERMAT__': {
