@@ -139,6 +139,7 @@ var Unit = exports.Unit = declare({
 			.bool('isActive', { ignore: true })
 			.bool('hasMoved', { ignore: true })
 			.bool('isEnabled', { ignore: true })
+			// .bool('isPinned', { ignore: true })
 		;
 		this.position = new Float32Array(this.position);
 	},
@@ -248,6 +249,7 @@ var Unit = exports.Unit = declare({
 		this.isActive = false;
 		this.hasMoved = false;
 		this.isEnabled = this.health() > 0;
+		// this.isPinned = this.isPinned | false;
 		return this.isEnabled;
 	},
 
@@ -257,6 +259,7 @@ var Unit = exports.Unit = declare({
 		raiseIf(!this.isEnabled, "Unit ", this.id, " is not enabled!");
 		raiseIf(this.isActive, "Unit ", this.id, " is already active!");
 		raiseIf(this.health() <= 0, "Unit ", this.id, " has been eliminated!");
+		// raiseIf(this.isPinned, "Unit ", this.id, " is pinned!");
 
 		this.isActive = true;
 		game.__activeUnit__ = this;
@@ -298,6 +301,11 @@ var Unit = exports.Unit = declare({
 			}
 		}
 		this.isEnabled = this.isEnabled && !this.isDead();
+
+		//FIXME para pinned: si tenia mas de la mitad de los modelos iniciales, y quedo en menos de la mitad tira MoralAleatory, si falla queda pinned.
+		//si ya estaba pinned entonces muere.
+		//console.log("#########################hice pinned");
+
 		return this.isEnabled;
 	},
 
@@ -405,6 +413,10 @@ var GameAction = exports.GameAction = declare({
 	*/
 	worth: function worth() {
 		return 0;
+	},
+
+	toString: function toString() {
+		return Sermat.ser(this);
 	}
 }); // declare GameAction
 
@@ -552,13 +564,39 @@ var AssaultAction = exports.AssaultAction = declare(GameAction, {
 				});
 			});
 		}
-		var aleatory = new ShootAleatory(assaulter.quality, target.defense, attackCount);
+		var defense = target.defense;
+		// if (target.isPinned){
+		// 	defense = defense - 1;
+		// }
+		var aleatory = new ShootAleatory(assaulter.quality, defense, attackCount);
 		var enemyAttackCount = 0;
 		target.models.forEach(function (enemyModel) {
 			enemyModel.equipments.forEach(function (eq) {
 					enemyAttackCount += eq.attacks;
 			});
 		});
+
+		// var pinnedAleatory;
+		// if (enemyAttackCount < attackCount){
+		// 	//FIXME MoralAleatory no ShootAleatory
+		// 	pinnedAleatory = new ShootAleatory(target.quality, 0, 1);
+		// 	console.log(pinnedAleatory);
+		// 	if (pinnedAleatory>0){
+		// 		console.log("#########################hice pinned");
+		// 	   target.isPinned = true;
+		// 	}
+		// }else {
+		// 	if (enemyAttackCount > attackCount){
+		// 		//FIXME MoralAleatory no ShootAleatory
+		// 		pinnedAleatory = new ShootAleatory(assaulter.quality, 0, 1);
+		// 		if (pinnedAleatory>0){
+		// 			console.log("#########################estoy pinned");
+		// 			 assaulter.isPinned = true;
+		// 		}
+		// 	}
+		// }
+
+
 		var enemyAleatory = new ShootAleatory(target.quality, assaulter.defense, enemyAttackCount);
 		return { wounds: aleatory, enemyWounds: enemyAleatory };
 	},
@@ -674,6 +712,33 @@ var ShootAleatory = exports.ShootAleatory = declare(ludorum.aleatories.Aleatory,
 		identifier: 'ShootAleatory',
 		serializer: function serialize_ShootAleatory(obj) {
 			return [obj.shooterQuality, obj.targetDefense, obj.attackCount];
+		}
+	}
+});
+
+var MoralAleatory = exports.MoralAleatory = declare(ludorum.aleatories.Aleatory, {
+	constructor: function MoralAleatory(quality) {
+		this.quality = quality |0;
+		this.__prob__ = Math.max(0, Math.min(1, (6 - quality + 1) / 6));
+		//FIXME es una única tirada de datos que tiene que superar o igualar la quality
+		var rs = rerolls(this.__saveProb__, rolls(this.__hitProb__, attackCount));
+		this.__distribution__ = iterable(rs).map(function (p, v) {
+			return [v, p];
+		}).toArray();
+	},
+
+	distribution: function distribution() {
+		return iterable(this.__distribution__);
+	},
+
+	value: function value(random) {
+		return (random || base.Randomness.DEFAULT).weightedChoice(this.__distribution__);
+	},
+
+	'static __SERMAT__': {
+		identifier: 'MoralAleatory',
+		serializer: function serialize_MoralAleatory(obj) {
+			return [obj.quality];
 		}
 	}
 });
@@ -809,10 +874,21 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		if (aleatories && !haps) {
 			return new ludorum.Contingent(this, actions, aleatories, update);
 		} else {
-			var nextGame = update ? this : Sermat.clone(this);
+			var nextGame = update ? this : this.clone();
 			action.execute(nextGame, haps);
 			return nextGame.nextTurn();
 		}
+	},
+
+	clone: function clone() { 
+		var args = Sermat.clone({ 
+			__activeUnit__: this.__activeUnit__, 
+			armies: this.armies 
+		}); 
+		args.round = this.round; 
+		args.rounds = this.rounds; 
+		args.terrain = this.terrain; 
+		return new this.constructor(args); 
 	},
 
 	// ## Serialization ############################################################################
@@ -1397,11 +1473,11 @@ exports.test = {
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
-				//new ludorum.players.RandomPlayer(),
+				//new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
+				new DynamicScriptingPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+			game = new AbstractedWargame(this.example2());
       window.match = new ludorum.Match(game, players);
       match.events.on('begin', function (game, match) {
         var terrain=  game.concreteGame.terrain;
@@ -1596,7 +1672,7 @@ exports.test = {
       new DynamicScriptingPlayer(),
       new BasicRulePlayer_assault()
     ];
-    window.match = new ludorum.Match(this.example2(), players);
+    window.match = new ludorum.Match(this.exampleAssault(), players);
     match.events.on('begin', function (game, match) {
       window.RENDERER.render(game);
     });
@@ -1872,6 +1948,7 @@ var GrimFuture = exports.GrimFuture = (function () {
 })();
 
 
+
 function playerRule(priority, fun) {
  fun.priority = priority;
  return fun;
@@ -1949,6 +2026,9 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  return a list of actions is used.
  */
  decision: function decision(game, player) {
+	 if (game instanceof AbstractedWargame) {
+		 return this.decision(game.concreteGame, player);
+	 }
    game.synchronizeMetagame();
    this.playerPossibleUnits = this.possibleUnits(game, player);
    this.playerShootableUnits = this.allShootableUnits(game, player);
@@ -4180,8 +4260,8 @@ rule_3K: playerRule(3, function rule_3K(game, player){
  return null;
 }),
 /*Si es la primer ronda, la unitX va a herir a la unidad más fuerte enemiga si le dispara,
- entonces dispararle.*/ //FIXME prioridad es 3
-rule_3L: playerRule(31000, function rule_3L(game, player){
+ entonces dispararle.*/
+rule_3L: playerRule(3, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.playerPossibleUnits;
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]
@@ -5871,7 +5951,7 @@ rule_12A: playerRule(12, function rule_12A(game, player){
                   for (var k = 0; k < units.length; k++) {
                     var unitX2 = units[k];
                     if (unitX2.cost()>unitX.cost()&&this.canAssist(game,player,unitX,unitX2)){
-                     console.log("rule_12A. assist");
+                     //console.log("rule_12A. assist");
                      return this.assist(game,player,unitX,unitX2);
                     }
                   }
@@ -5903,7 +5983,7 @@ rule_12B: playerRule(12, function rule_12B(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_12B. assault");
+                   //console.log("rule_12B. assault");
                    return this.assault(unitX,unitY2);
                 }
               }
@@ -5933,7 +6013,7 @@ rule_12C: playerRule(12, function rule_12C(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_12C. scape");
+                   //console.log("rule_12C. scape");
                    return this.scape(game,player,unitX);
                 }
               }
@@ -5964,7 +6044,7 @@ rule_12D: playerRule(12, function rule_12D(game, player){
               for (var j2 = 0; j2 < enemyShootableUnits.length; j2++) {
                 var unitY2 = enemyShootableUnits[j2];
                 if (this.willWoundShooting(game,unitX,unitY2)&&this.canKill(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_12D. shoot");
+                   //console.log("rule_12D. shoot");
                    return this.shoot(unitX,unitY2);
                 }
               }
@@ -5995,7 +6075,7 @@ rule_11A: playerRule(11, function rule_11A(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_11A. scape");
+                   //console.log("rule_11A. scape");
                    return this.scape(game,player,unitX);
                 }
               }
@@ -6025,7 +6105,7 @@ rule_11B: playerRule(11, function rule_11B(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_11B. scape");
+                   //console.log("rule_11B. scape");
                    return this.scape(game,player,unitX);
                 }
               }
@@ -6055,7 +6135,7 @@ rule_11C: playerRule(11, function rule_11C(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_11C. assault");
+                   //console.log("rule_11C. assault");
                    return this.assault(unitX,unitY2);
                 }
               }
@@ -6085,7 +6165,7 @@ rule_11D: playerRule(11, function rule_11D(game, player){
               for (var j2 = 0; j2 < enemyAssaultableUnits.length; j2++) {
                 var unitY2 = enemyAssaultableUnits[j2];
                 if (this.willWoundHalfAssaulting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                   console.log("rule_11D. assault");
+                   //console.log("rule_11D. assault");
                    return this.assault(unitX,unitY2);
                 }
               }
@@ -6109,7 +6189,7 @@ rule_10A: playerRule(10, function rule_10A(game, player){
         for (var j=0; j<enemyAssaultableUnits.length; j++){
           var unitY = enemyAssaultableUnits[j];
           if (this.unitIsStrongest(enemyAssaultableUnits,unitY)&&this.willWoundHalfAssaulting(game,unitX,unitY)){
-             console.log("rule_10A. assault");
+             //console.log("rule_10A. assault");
              return this.assault(unitX,unitY);
           }
         }
@@ -6130,7 +6210,7 @@ rule_10B: playerRule(10, function rule_10B(game, player){
         for (var j=0; j<enemyAssaultableUnits.length; j++){
           var unitY = enemyAssaultableUnits[j];
           if (this.unitIsStrongest(enemyAssaultableUnits,unitY)&&this.willWoundHalfAssaulting(game,unitX,unitY)){
-             console.log("rule_10B. assault");
+             //console.log("rule_10B. assault");
              return this.assault(unitX,unitY);
           }
         }
@@ -6154,7 +6234,7 @@ rule_9A: playerRule(9, function rule_9A(game, player){
       for (var j=0; j<enemyAssaultableUnits.length; j++){
         var unitY = enemyAssaultableUnits[j];
         if (this.easiestToKill(enemyAssaultableUnits,unitY)&&this.willWoundHalfAssaulting(game,unitX,unitY)){
-           console.log("rule_11A. assault");
+           //console.log("rule_11A. assault");
            return this.assault(unitX,unitY);
         }
       }
@@ -6173,7 +6253,7 @@ rule_9B: playerRule(9, function rule_9B(game, player){
       for (var j=0; j<enemyAssaultableUnits.length; j++){
         var unitY = enemyAssaultableUnits[j];
         if (this.easiestToKill(enemyAssaultableUnits,unitY)&&this.willWoundHalfAssaulting(game,unitX,unitY)){
-           console.log("rule_9B. assault");
+           //console.log("rule_9B. assault");
            return this.assault(unitX,unitY);
         }
       }
@@ -6202,7 +6282,7 @@ rule_8A: playerRule(8, function rule_8A(game, player){
             for (var j=0; j<enemyShootableUnits.length; j++){
               var unitY = enemyShootableUnits[j];
               if (this.willKillShooting(game,unitX,unitY)&&unitY.cost()===this.mostExpensiveUnit(enemyShootableUnits).cost()){
-                 console.log("rule_8A. shoot");
+                 //console.log("rule_8A. shoot");
                  return this.shoot(unitX,unitY);
               }
             }
@@ -6232,7 +6312,7 @@ rule_8B: playerRule(8, function rule_8B(game, player){
             for (var j=0; j<enemyShootableUnits.length; j++){
               var unitY = enemyShootableUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                 console.log("rule_8B. shoot");
+                 //console.log("rule_8B. shoot");
                  return this.shoot(unitX,unitY2);
               }
             }
@@ -6265,7 +6345,7 @@ rule_8C: playerRule(8, function rule_8C(game, player){
                 for (var j2=0; j2<enemyShootableUnits.length; j2++){
                   var unitY2 = enemyShootableUnits[j2];
                   if (this.willWoundShooting(game,unitX,unitY2)&&unitX.cost()>unitY2.cost()){
-                    console.log("rule_8C. assist");
+                    //console.log("rule_8C. assist");
                     return this.assist(game,player,unitX,unitX2);
                   }
                 }
@@ -6296,7 +6376,7 @@ rule_7A: playerRule(7, function rule_7A(game, player){
             for (var j = 0; j < enemyShootableUnits.length; j++) {
               var unitY = enemyShootableUnits[j];
               if (this.easiestToKill(enemyShootableUnits,unitY)&&this.canWound(game,unitX,unitY)){
-                 console.log("rule_7A. shoot");
+                 //console.log("rule_7A. shoot");
                  return this.shoot(unitX,unitY);
               }
             }
@@ -6326,7 +6406,7 @@ rule_7B: playerRule(7, function rule_7B(game, player){
             for (var j=0; j<enemyUnits.length; j++){
               var unitY = enemyUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                 console.log("rule_7B. shoot");
+                 //console.log("rule_7B. shoot");
                  return this.shoot(unitX,unitY2);
               }
             }
@@ -6356,7 +6436,7 @@ rule_7C: playerRule(7, function rule_7C(game, player){
             for (var j=0; j<enemyUnits.length; j++){
               var unitY = enemyUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                 console.log("rule_7C. shoot");
+                 //console.log("rule_7C. shoot");
                  return this.shoot(unitX,unitY2);
               }
             }
@@ -6386,7 +6466,7 @@ rule_7D: playerRule(7, function rule_7D(game, player){
             for (var j = 0; j < enemyShootableUnits.length; j++) {
               var unitY = enemyShootableUnits[j];
               if (this.willWoundShooting(game,unitY,unitX)){
-                 console.log("rule_7D. shoot");
+                 //console.log("rule_7D. shoot");
                  return this.shoot(unitX,unitY2);
               }
             }
@@ -6416,7 +6496,7 @@ rule_7E: playerRule(7, function rule_7E(game, player){
                 for (var h=0;h<possibleUnits.length;h++){
                   var unitX2 = possibleUnits[h];
                   if (unitX.cost()<unitX2.cost()&&this.canAssist(game,player,unitX,unitX2)){
-                    console.log("rule_7E. assist");
+                    //console.log("rule_7E. assist");
                     return this.assist(game,player,unitX,unitX2);
                   }
                 }
@@ -6449,7 +6529,7 @@ rule_7F: playerRule(7, function rule_7F(game, player){
                 for (var h=0;h<possibleUnits.length;h++){
                   var unitX2 = possibleUnits[h];
                   if (unitX.cost()<unitX2.cost()&&!this.canAssist(game,player,unitX,unitX2)){
-                    console.log("rule_7F. scape");
+                    //console.log("rule_7F. scape");
                     return this.scape(game,player,unitX);
                   }
                 }
@@ -6475,7 +6555,7 @@ rule_6A: playerRule(6, function rule_6A(game, player){
         for (var j=0; j<enemyUnits.length; j++){
           var unitY = enemyUnits[j];
           if (unitY.cost()===this.mostExpensiveUnit(enemyUnits).cost()){
-             console.log("rule_6A. shoot");
+             //console.log("rule_6A. shoot");
              return this.shoot(unitX,unitY);
           }
         }
@@ -6500,7 +6580,7 @@ rule_6B: playerRule(6, function rule_6B(game, player){
             for (var k=0; k<shootingKillableUnits.length; k++){
               var unitY2 = shootingKillableUnits[k];
               if (unitX.cost()>unitY2.cost()&&this.willWoundShooting(game,unitX,unitY2)){
-                 console.log("rule_6B. shoot");
+                 //console.log("rule_6B. shoot");
                  return this.shoot(unitX,unitY);
               }
             }
@@ -6524,7 +6604,7 @@ rule_6C: playerRule(6, function rule_6C(game, player){
           var unitY = enemyShootableUnits[j];
           if (this.willWoundShooting(game,unitY,unitX)){
             if (this.canScape(game,player,unitX)){
-               console.log("rule_6C. scape");
+               //console.log("rule_6C. scape");
                return this.scape(game,player,unitX);
             }
           }
@@ -6545,7 +6625,7 @@ rule_5A: playerRule(5, function rule_5A(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKillShooting(game,unitX,unitY) && this.willWoundALotShooting(game,unitX,unitY)){
-           console.log("rule_5A. shoot");
+           //console.log("rule_5A. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6563,7 +6643,7 @@ rule_5B: playerRule(5, function rule_5B(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKillShooting(game,unitX,unitY) && this.willWoundALotShooting(game,unitX,unitY)){
-           console.log("rule_5B. shoot");
+           //console.log("rule_5B. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6581,7 +6661,7 @@ rule_5C: playerRule(5, function rule_5C(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKillShooting(game,unitX,unitY) && this.willWoundALotShooting(game,unitX,unitY)){
-           console.log("rule_5C. shoot");
+           //console.log("rule_5C. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6600,7 +6680,7 @@ rule_5D: playerRule(5, function rule_5D(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKill(game,unitY,unitX) && this.willWoundShooting(game,unitX,unitY)){
-           console.log("rule_5D. shoot");
+           //console.log("rule_5D. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6619,7 +6699,7 @@ rule_5E: playerRule(5, function rule_5E(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKill(game,unitY,unitX) && this.willWoundShooting(game,unitX,unitY)){
-           console.log("rule_5E. shoot");
+           //console.log("rule_5E. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6637,7 +6717,7 @@ rule_5F: playerRule(5, function rule_5F(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKill(game,unitY,unitX) && this.canScape(game,player,unitX)){
-           console.log("rule_5F. scape");
+           //console.log("rule_5F. scape");
            return this.scape(game,player,unitX);
         }
       }
@@ -6655,7 +6735,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.canKill(game,unitY,unitX) && this.canScape(game,player,unitX)){
-           console.log("rule_5G. scape");
+           //console.log("rule_5G. scape");
            return this.scape(game,player,unitX);
         }
       }
@@ -6678,7 +6758,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
        for (var j = 0; j < enemyShootableUnits.length; j++) {
          var unitY = enemyShootableUnits[j];
          if (this.canKillShooting(game,unitX,unitY)){
-            console.log("rule_4A. shoot");
+            //console.log("rule_4A. shoot");
             return this.shoot(unitX,unitY);
          }
        }
@@ -6695,7 +6775,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
        for (var j = 0; j < enemyShootableUnits.length; j++) {
          var unitY = enemyShootableUnits[j];
          if (this.canKillShooting(game,unitX,unitY)){
-            console.log("rule_4B. shoot");
+            //console.log("rule_4B. shoot");
             return this.shoot(unitX,unitY);
          }
        }
@@ -6712,7 +6792,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
        for (var j = 0; j < enemyShootableUnits.length; j++) {
          var unitY = enemyShootableUnits[j];
          if (this.canKillShooting(game,unitX,unitY)){
-            console.log("rule_4C. shoot");
+            //console.log("rule_4C. shoot");
             return this.shoot(unitX,unitY);
          }
        }
@@ -6733,7 +6813,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
            for (var k = 0; k < units.length; k++) {
              var unitX2 = units[k];
              if (unitX2.cost()>unitX.cost()&&this.canAssist(game,player,unitX,unitX2)){
-              console.log("rule_4D. assist");
+              //console.log("rule_4D. assist");
               return this.assist(game,player,unitX,unitX2);
              }
            }
@@ -6760,7 +6840,7 @@ disparar a la mas facil de matar*/
              for (var k = 0; k < units.length; k++) {
                var unitX2 = units[k];
                if (unitX2.cost()>unitX.cost()&&!this.canAssist(game,player,unitX,unitX2)){
-                  console.log("rule_4E. shoot");
+                  //console.log("rule_4E. shoot");
                   return this.shoot(unitX,unitY);
                }
              }
@@ -6784,7 +6864,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
            if (this.classification(unitX)==="sniper" && this.unitIsStrongest(enemyShootableUnits,unitY)){
-              console.log("rule_3A. shoot");
+              //console.log("rule_3A. shoot");
               return this.shoot(unitX,unitY);
            }
          }
@@ -6802,7 +6882,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
            if (this.maxRangeInUnits(possibleUnits,unitX) && this.unitIsStrongest(enemyShootableUnits,unitY)){
-              console.log("rule_3B. shoot");
+              //console.log("rule_3B. shoot");
               return this.shoot(unitX,unitY);
            }
          }
@@ -6821,7 +6901,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.wounded(unitX2) && this.canAssist(game,player,unitX,unitX2)){
-              console.log("rule_3C. assist");
+              //console.log("rule_3C. assist");
               return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -6840,7 +6920,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.wounded(unitX2) && this.canAssist(game,player,unitX,unitX2)){
-              console.log("rule_3D. assist");
+              //console.log("rule_3D. assist");
               return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -6859,7 +6939,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.wounded(unitX2) && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_3E. assist");
+             //console.log("rule_3E. assist");
               return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -6883,7 +6963,7 @@ disparar a la mas facil de matar*/
              for (var k=0; k<enemyUnits.length;k++){
                var unitY = enemyUnits[k];
                if(!this.canKill(game,unitY,unitX)){
-                 console.log("rule_3F. assist");
+                 //console.log("rule_3F. assist");
                  return this.assist(game,player,unitX,unitX2);
                }
              }
@@ -6904,7 +6984,7 @@ disparar a la mas facil de matar*/
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
              if (unitY.cost() === this.mostExpensiveUnit(enemyShootableUnits).cost()){
-               console.log("rule_3G. shoot");
+               //console.log("rule_3G. shoot");
                return this.shoot(unitX,unitY);
              }
            }
@@ -6925,7 +7005,7 @@ rule_3H: playerRule(3, function rule_3H(game, player){
       for (var j = 0; j < units.length; j++) {
         var unitX2 = units[j];
         if (unitX2.livingModels().length<unitX2.size() && this.canAssist(game,player,unitX,unitX2)){
-          console.log("rule_3H. assist");
+          //console.log("rule_3H. assist");
            return this.assist(game,player,unitX,unitX2);
         }
       }
@@ -6945,7 +7025,7 @@ rule_3I: playerRule(3, function rule_3I(game, player){
       for (var j = 0; j < units.length; j++) {
         var unitX2 = units[j];
         if (unitX2.livingModels().length<unitX2.size() && this.canAssist(game,player,unitX,unitX2)){
-           console.log("rule_3I. assist");
+           //console.log("rule_3I. assist");
            return this.assist(game,player,unitX,unitX2);
         }
       }
@@ -6965,7 +7045,7 @@ rule_3J: playerRule(3, function rule_3J(game, player){
       for (var j = 0; j < units.length; j++) {
         var unitX2 = units[j];
         if (unitX2.livingModels().length<unitX2.size() && this.canAssist(game,player,unitX,unitX2)){
-          console.log("rule_3J. assist");
+          //console.log("rule_3J. assist");
           return this.assist(game,player,unitX,unitX2);
         }
       }
@@ -6984,7 +7064,7 @@ rule_3K: playerRule(3, function rule_3K(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
           if (this.canShoot_(game,unitX,unitY,false) && this.unitIsStrongest(enemyShootableUnits,unitY)){
-           console.log("rule_3K. shoot");
+           //console.log("rule_3K. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -6998,14 +7078,14 @@ rule_3L: playerRule(3, function rule_3L(game, player){
   if (game.round === 0){
     var possibleUnits = this.playerPossibleUnits;
     //[playerArmy, playerUnits, enemyArmy, enemyUnits]
-    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits[3]);
+    var units = this.armiesAndUnits(game,player)[1].concat(this.armiesAndUnits(game,player)[3]);
     for (var i = 0; i < possibleUnits.length; i++) {
       var unitX = possibleUnits[i];
       var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.willWoundShooting(game,unitX,unitY) && this.unitIsStrongest(units,unitY)){
-           console.log("rule_3L. shoot");
+           //console.log("rule_3L. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -7022,7 +7102,7 @@ rule_3M: playerRule(3, function rule_3M(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.willWoundShooting(game,unitX,unitY) && this.unitIsStrongest(enemyShootableUnits,unitY)){
-           console.log("rule_3M. shoot");
+           //console.log("rule_3M. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -7041,7 +7121,7 @@ rule_3N: playerRule(3, function rule_3N(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.willWoundShooting(game,unitX,unitY) && this.unitIsStrongest(units,unitY)){
-           console.log("rule_3N. shoot");
+           //console.log("rule_3N. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -7058,7 +7138,7 @@ rule_3O: playerRule(3, function rule_3O(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.willWoundShooting(game,unitX,unitY) && this.unitIsStrongest(enemyShootableUnits,unitY)){
-           console.log("rule_3O. shoot");
+           //console.log("rule_3O. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -7075,7 +7155,7 @@ rule_3P: playerRule(3, function rule_3P(game, player){
       for (var j = 0; j < enemyShootableUnits.length; j++) {
         var unitY = enemyShootableUnits[j];
         if (this.willWoundShooting(game,unitX,unitY) && this.easiestToKill(enemyShootableUnits,unitY)){
-           console.log("rule_3P. shoot");
+           //console.log("rule_3P. shoot");
            return this.shoot(unitX,unitY);
         }
       }
@@ -7093,7 +7173,7 @@ rule_3Q: playerRule(3, function rule_3Q(game, player){
         for (var j = 0; j < enemyShootableUnits.length; j++) {
           var unitY = enemyShootableUnits[j];
           if (this.willWoundShooting(game,unitX,unitY)&&this.unitIsStrongest(enemyShootableUnits,unitY)){
-             console.log("rule_3Q. shoot");
+             //console.log("rule_3Q. shoot");
              return this.shoot(unitX,unitY);
           }
         }
@@ -7114,7 +7194,7 @@ rule_3R: playerRule(3, function rule_3R(game, player){
         for (var j = 0; j < enemyShootableUnits.length; j++) {
           var unitY = enemyShootableUnits[j];
           if (this.willWoundShooting(game,unitX,unitY)&&this.unitIsStrongest(enemyShootableUnits,unitY)){
-             console.log("rule_3R. shoot");
+             //console.log("rule_3R. shoot");
              return this.shoot(unitX,unitY);
           }
         }
@@ -7135,7 +7215,7 @@ rule_3S: playerRule(3, function rule_3S(game, player){
         for (var j = 0; j < enemyShootableUnits.length; j++) {
           var unitY = enemyShootableUnits[j];
           if (this.willWoundShooting(game,unitX,unitY)&&this.unitIsStrongest(units,unitY)){
-             console.log("rule_3S. shoot");
+             //console.log("rule_3S. shoot");
              return this.shoot(unitX,unitY);
           }
         }
@@ -7161,7 +7241,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
           for (var j = 0; j < enemyShootableUnits.length; j++) {
             var unitY = enemyShootableUnits[j];
             if (this.willWoundShooting(game,unitX,unitY) && this.unitIsStrongest(allUnits,unitY)){
-               console.log("rule_3T. assist");
+               //console.log("rule_3T. assist");
                return this.assist(game,player,unitX,unitX2);
             }
           }
@@ -7183,7 +7263,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < enemyAssaultableUnits.length; j++) {
            var unitY = enemyAssaultableUnits[j];
             if (this.wounded(unitY)){
-              console.log("rule_2A. assault");
+              //console.log("rule_2A. assault");
               return this.assault(unitX,unitY);
             }
          }
@@ -7202,7 +7282,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2B. shoot");
+           //console.log("rule_2B. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7220,7 +7300,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2C. shoot");
+           //console.log("rule_2C. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7238,7 +7318,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2D. shoot");
+           //console.log("rule_2D. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7258,7 +7338,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2E. assist");
+             //console.log("rule_2E. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7279,7 +7359,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2F. assist");
+             //console.log("rule_2F. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7300,7 +7380,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2G. assist");
+             //console.log("rule_2G. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7321,7 +7401,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2H. assist");
+             //console.log("rule_2H. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7342,7 +7422,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2I. assist");
+             //console.log("rule_2I. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7363,7 +7443,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2J. assist");
+             //console.log("rule_2J. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7384,7 +7464,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2K. assist");
+             //console.log("rule_2K. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7405,7 +7485,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2L. assist");
+             //console.log("rule_2L. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7426,7 +7506,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2M. assist");
+             //console.log("rule_2M. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7447,7 +7527,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2N. assist");
+             //console.log("rule_2N. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7468,7 +7548,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (!unitX2.isEnabled && this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2O. assist");
+             //console.log("rule_2O. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7489,7 +7569,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          for (var j = 0; j < units.length; j++) {
            var unitX2 = units[j];
            if (this.canAssist(game,player,unitX,unitX2)){
-             console.log("rule_2P. assist");
+             //console.log("rule_2P. assist");
              return this.assist(game,player,unitX,unitX2);
            }
          }
@@ -7509,7 +7589,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2Q. shoot");
+           //console.log("rule_2Q. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7527,7 +7607,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2R. shoot");
+           //console.log("rule_2R. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7545,7 +7625,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
          var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
          for (var j = 0; j < enemyShootableUnits.length; j++) {
            var unitY = enemyShootableUnits[j];
-           console.log("rule_2S. shoot");
+           //console.log("rule_2S. shoot");
            return this.shoot(unitX,unitY);
          }
        }
@@ -7562,7 +7642,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
      for (var i = 0; i < possibleUnits.length; i++) {
        var unitX = possibleUnits[i];
        if (this.canScape(game,player,unitX)){
-           console.log("rule_1A. scape");
+           //console.log("rule_1A. scape");
            return this.scape(game,player,unitX);
        }
      }
@@ -7576,7 +7656,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
      for (var i = 0; i < possibleUnits.length; i++) {
        var unitX = possibleUnits[i];
        if (this.canScape(game,player,unitX)){
-         console.log("rule_1B. scape");
+         //console.log("rule_1B. scape");
          return this.scape(game,player,unitX);
        }
      }
@@ -7592,7 +7672,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
        var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
        for (var j = 0; j < enemyShootableUnits.length; j++) {
          var unitY = enemyShootableUnits[j];
-         console.log("rule_1C. shoot");
+         //console.log("rule_1C. shoot");
          return this.shoot(unitX,unitY);
        }
      }
@@ -7608,7 +7688,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
        var enemyAssaultableUnits = this.enemyAssaultableUnits(game, player, unitX);
        for (var j = 0; j < enemyAssaultableUnits.length; j++) {
          var unitY = enemyAssaultableUnits[j];
-         console.log("rule_1D. assault");
+         //console.log("rule_1D. assault");
          return this.assault(unitX,unitY);
        }
      }
@@ -7624,7 +7704,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
      var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
      for (var j = 0; j < enemyShootableUnits.length; j++) {
        var unitY = enemyShootableUnits[j];
-       console.log("rule_1E. shoot");
+       //console.log("rule_1E. shoot");
        return this.shoot(unitX,unitY);
      }
    }
@@ -7642,7 +7722,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
        for (var k=0; k<enemyUnits.length;k++){
          var eu = enemyUnits[k];
          if (this.easiestToKill(enemyUnits,eu)){
-           console.log("rule_1F. move");
+           //console.log("rule_1F. move");
            var move = this.getCloseTo(game,unitX,eu);
            return move;
          }
@@ -7919,7 +7999,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
      for (var j = 0; j < enemyShootableUnits.length; j++) {
        var unitY = enemyShootableUnits[j];
-       console.log("rule_100. shoot");
+       //console.log("rule_100. shoot");
        return this.shoot(unitX,unitY);
      }
    }
@@ -7937,7 +8017,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
        for (var k=0; k<enemyUnits.length;k++){
          var eu = enemyUnits[k];
          if (this.easiestToKill(enemyUnits,eu)){
-           console.log("rule_1F. move");
+           //console.log("rule_1F. move");
            var move = this.getCloseTo(game,unitX,eu);
            return move;
          }
@@ -8110,7 +8190,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
        var enemyAssaultableUnits = this.enemyAssaultableUnits(game, player, unitX);
        for (var j = 0; j < enemyAssaultableUnits.length; j++) {
          var unitY = enemyAssaultableUnits[j];
-         console.log("rule_100. assault");
+         //console.log("rule_100. assault");
          return this.assault(unitX,unitY);
        }
      }
@@ -8125,7 +8205,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;
@@ -8211,7 +8291,6 @@ var BasicRulePlayer_assist = exports.BasicRulePlayer_assist = declare(ludorum.Pl
      return [new ActivateAction(unitX.id),moveAction,new EndTurnAction(unitX.id)];
    }
  },
-
  //metodo auxiliar para la funcion assist
  assistAux: function assistAux(game,player,enemyUnits,unitX,unitX2){
    for (var i=0;i<enemyUnits.length;i++){
@@ -8637,7 +8716,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      for (var j = 0; j < units.length; j++) {
        var unitX2 = units[j];
        if (this.canAssist(game,player,unitX,unitX2)){
-         console.log("rule_100. assist");
+         //console.log("rule_100. assist");
          return this.assist(game,player,unitX,unitX2);
        }
      }
@@ -8653,7 +8732,7 @@ enemyAssaultableUnits: function enemyAssaultableUnits(game, player, assaulter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;
@@ -8990,6 +9069,15 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
    }
    return 0;
  },
+ //devuelve true si el assaulter puede asaltar al target
+canAssault: function canAssault(game,assaulter,target){
+  if (!assaulter.isDead() && assaulter.isEnabled && !target.isDead()){
+    if (game.terrain.canShoot(assaulter,target) <= 12){
+      return true;
+    }
+  }
+  return false;
+},
  // devuelve un porcentaje de destruccion de la unidad defensora tras un asalto de la unidad atacante
  // donde el mejor porcentaje posible: cada ataque supera las tiradas de dados, y el defensor falla los bloqueos
  bestAttackResultAssaulting: function bestAttackResultAssaulting(game,unitX,unitY){
@@ -9032,13 +9120,13 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
  },
   // ## Rules /////////////////////////////////////////////////////////////////
 
- //si es la primer ronda y puede escaparse que se escape.
+ //si puede escaparse que se escape.
  rule_100: playerRule(100, function rule_100(game, player){
    var possibleUnits = this.playerPossibleUnits;
    for (var i = 0; i < possibleUnits.length; i++) {
      var unitX = possibleUnits[i];
      if (this.canScape(game,player,unitX)){
-         console.log("rule_100. scape");
+         //console.log("rule_100. scape");
          return this.scape(game,player,unitX);
      }
    }
@@ -9053,7 +9141,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var enemyShootableUnits = this.enemyShootableUnits(game, player, unitX);
      for (var j = 0; j < enemyShootableUnits.length; j++) {
        var unitY = enemyShootableUnits[j];
-       console.log("rule_2. shoot");
+       //console.log("rule_2. shoot");
        return this.shoot(unitX,unitY);
      }
    }
@@ -9067,7 +9155,7 @@ enemyShootableUnits: function enemyShootableUnits(game, player, shooter){
      var unitX = possibleUnits[i];
      var moveActions = unitX.getMoveActions(game);
      var return_move = this.move(unitX,moveActions[Math.floor(Math.random()*moveActions.length)]);
-     console.log("rule_1. move");
+     //console.log("rule_1. move");
      return return_move;
    }
    return null;
@@ -9536,12 +9624,23 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	/**
 	*/
 	next: function next(actions, haps, update) {
-		var nextGame = update ? this : Sermat.clone(this),
+		var nextGame = update ? this : this.clone(),
 			activePlayer = this.activePlayer(),
 			action = actions[activePlayer];
-		action.execute(nextGame, update); //FIXME Haps.
+		if (action instanceof StrategicAttackAction) {
+			action.execute(nextGame, update); //FIXME Haps.
+		} else {
+			nextGame.concreteGame = nextGame.concreteGame.next(actions, haps, true);
+			if (nextGame.concreteGame.isContingent) {
+				nextGame.concreteGame = nextGame.concreteGame.randomNext();
+			}
+		}
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
 		return nextGame;
+	},
+
+	clone: function clone() { 
+		return new this.constructor(this.concreteGame.clone()); 
 	},
 
 	'static __SERMAT__': {
@@ -9552,6 +9651,16 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	}
 }); // declare AbstractedWargame
 
+/** Random player to use with AbstractedWargame using the concrete game actions. 
+*/
+var ConcreteRandomPlayer = exports.ConcreteRandomPlayer = declare(ludorum.players.RandomPlayer, {
+	decision: function decision(game, player) {
+		if (game instanceof StrategicAttackAction) {
+			game = game.concreteGame;
+		}
+		return ludorum.players.RandomPlayer.prototype.decision.call(this, game, player);
+	}
+});
 
 /** See __prologue__.js
 */
