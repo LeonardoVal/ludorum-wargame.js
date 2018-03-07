@@ -13,7 +13,7 @@ var path = require('path'),
 	ludorum_game_colograph = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
-		port: 8888,
+		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
 		customFiles: [
@@ -22,7 +22,8 @@ var path = require('path'),
 		],
 		logFile: base.Text.formatDate(null, '"./tests/logs/simulation-"yyyymmdd-hhnnss".txt"'),
 		maxDelay: 10000,
-		maxRetries: 1000
+		maxRetries: 1000,
+		maxScheduled: 100000
 	});
 
 // ## Jobs #########################################################################################
@@ -98,9 +99,10 @@ base.Future.all(
 			} else {
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
-			if (++FINISHED_COUNT % 100 == 0) {
+			if (++FINISHED_COUNT % 500 == 0) {
 				server.logger.info('Finished '+ FINISHED_COUNT +'/'+
-					(DUELS.length * MATCH_COUNT * SCENARIOS.length) +' matches.');
+					(DUELS.length * MATCH_COUNT * SCENARIOS.length) +' matches. Statistics:\n'+
+					STATS);
 			}
 		});
 	})
