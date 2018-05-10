@@ -1,3 +1,4 @@
+
 function playerRule(priority, fun) {
  fun.priority = priority;
  return fun;
@@ -75,6 +76,9 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
  return a list of actions is used.
  */
  decision: function decision(game, player) {
+	 if (game instanceof AbstractedWargame) {
+		 return this.decision(game.concreteGame, player);
+	 }
    game.synchronizeMetagame();
    this.playerPossibleUnits = this.possibleUnits(game, player);
    this.playerShootableUnits = this.allShootableUnits(game, player);

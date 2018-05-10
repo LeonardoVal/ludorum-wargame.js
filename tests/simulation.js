@@ -13,7 +13,7 @@ var path = require('path'),
 	ludorum_game_colograph = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
-		port: 8888,
+		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
 		customFiles: [
@@ -22,15 +22,19 @@ var path = require('path'),
 		],
 		logFile: base.Text.formatDate(null, '"./tests/logs/simulation-"yyyymmdd-hhnnss".txt"'),
 		maxDelay: 10000,
-		maxRetries: 1000
+		maxRetries: 1000,
+		maxScheduled: 100000
 	});
 
 // ## Jobs #########################################################################################
 
-var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
+var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario, useAbstracted) {
 	var playersByName = {
 			RAN: function () {
 				return new ludorum.players.RandomPlayer();
+			},
+			CRAN: function () {
+				return new ludorum_wargame.ConcreteRandomPlayer();
 			},
 			DS: function () {
 				return new ludorum_wargame.DynamicScriptingPlayer();
@@ -79,6 +83,7 @@ var MATCH_COUNT = 1000,
 		//'BRP3-BRP3', 'BRP3-RAN', 'RAN-BRP3', 'BRP3-DS', 'DS-BRP3',
 		//'BRP4-BRP4', 'BRP4-RAN', 'RAN-BRP4', 'BRP4-DS', 'DS-BRP4'
 	],
+	USE_ABSTRACTED = false,//true,
 	FINISHED_COUNT = 0;
 
 base.Future.all(
@@ -87,7 +92,7 @@ base.Future.all(
 			info: 'Match #'+ i +' for duel '+ duel +' in '+ scenario,
 			fun: jobFunction,
 			imports: ['ludorum', 'ludorum-wargame'],
-			args: duel.split('-').concat([scenario])
+			args: duel.split('-').concat([scenario, USE_ABSTRACTED])
 		}).then(function (data) {
 			if (data.Red > 0) {
 				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
@@ -98,9 +103,10 @@ base.Future.all(
 			} else {
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
-			if (++FINISHED_COUNT % 100 == 0) {
+			if (++FINISHED_COUNT % 500 == 0) {
 				server.logger.info('Finished '+ FINISHED_COUNT +'/'+
-					(DUELS.length * MATCH_COUNT) +' matches.');
+					(DUELS.length * MATCH_COUNT * SCENARIOS.length) +' matches. Statistics:\n'+
+					STATS);
 			}
 		});
 	})

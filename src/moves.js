@@ -32,6 +32,10 @@ var GameAction = exports.GameAction = declare({
 	*/
 	worth: function worth() {
 		return 0;
+	},
+
+	toString: function toString() {
+		return Sermat.ser(this);
 	}
 }); // declare GameAction
 

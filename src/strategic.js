@@ -151,12 +151,23 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 	/**
 	*/
 	next: function next(actions, haps, update) {
-		var nextGame = update ? this : Sermat.clone(this),
+		var nextGame = update ? this : this.clone(),
 			activePlayer = this.activePlayer(),
 			action = actions[activePlayer];
-		action.execute(nextGame, update); //FIXME Haps.
+		if (action instanceof StrategicAttackAction) {
+			action.execute(nextGame, update); //FIXME Haps.
+		} else {
+			nextGame.concreteGame = nextGame.concreteGame.next(actions, haps, true);
+			if (nextGame.concreteGame.isContingent) {
+				nextGame.concreteGame = nextGame.concreteGame.randomNext();
+			}
+		}
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
 		return nextGame;
+	},
+
+	clone: function clone() { 
+		return new this.constructor(this.concreteGame.clone()); 
 	},
 
 	'static __SERMAT__': {
@@ -166,3 +177,14 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		}
 	}
 }); // declare AbstractedWargame
+
+/** Random player to use with AbstractedWargame using the concrete game actions. 
+*/
+var ConcreteRandomPlayer = exports.ConcreteRandomPlayer = declare(ludorum.players.RandomPlayer, {
+	decision: function decision(game, player) {
+		if (game instanceof StrategicAttackAction) {
+			game = game.concreteGame;
+		}
+		return ludorum.players.RandomPlayer.prototype.decision.call(this, game, player);
+	}
+});

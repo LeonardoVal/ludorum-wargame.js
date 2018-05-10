@@ -156,11 +156,11 @@ exports.test = {
 
   randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		var players = [
-				new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
-				//new ludorum.players.RandomPlayer(),
+				//new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
+				new DynamicScriptingPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+			game = new AbstractedWargame(this.example2());
       window.match = new ludorum.Match(game, players);
       match.events.on('begin', function (game, match) {
         var terrain=  game.concreteGame.terrain;
