@@ -333,22 +333,29 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.7,
 	decay: 0.5,
-	iterations: 25,
+	iterations: 2,
 
-	constructor: function InfluenceMap(game, role){
-		this.width= game.terrain.width;
-		this.height= game.terrain.height;
-		this.grid= this.matrix(this.width);
-		this.terrain= game.terrain;
-		this.role = role;
+	constructor: function InfluenceMap(args){
+		this.role=args.activePlayers[0];
+		this.width= args.terrain.width;
+		this.height= args.terrain.height;
+		this.gridRed= this.gridRed ||  this.matrix(this.width);
+		this.gridBlue= this.gridBlue ||  this.matrix(this.width);
+		this.terrain= args.terrain;
+		
+		//this.role = role;
+		
+	},
+	getGrid:function getGrid(){
+		if (this.role=="Red")
+			return this.gridRed;
+		return this.gridBlue;
 
 	},
-	getInf:function getInf(pos){
-		var x=pos[0],
-			y=pos[1];
+	setGrid:function getGrid(grid){
 		if (this.role=="Red")
-			return this.grid[x][y];
-		return -this.grid[x][y];
+			 this.gridRed=grid;
+		this.gridBlue=grid;
 
 	},
 	matrix:function matrix(dim){
@@ -356,20 +363,20 @@ var InfluenceMap = exports.InfluenceMap = declare({
 	},
 	update: function update(game,iterations) {
 		var influenceMap = this,
-			grid =game.concreteInfluence|| this.grid,
-			it=iterations || this.iterations,
+			grid = this.getGrid(),
 			pos;
 		this.role = game.activePlayer();
 		this.unitsInfluences(game);
 		for (var i = 0; i < it; i++) {
 			grid=this.spread(grid);
 		}
+		this.setGrid(grid);
 		return grid;
 	},
 	unitsInfluences: function unitsInfluences(game) {
 		var imap = this,
 			sign,
-			grid = this.grid,
+			grid = this.getGrid(),
 			posX,
 			posY;
 		for (var army in game.armies){
@@ -384,14 +391,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
-					grid[posX][posY] = imap.influence(unit,sign) ;
+					grid[posX][posY] = imap.influence(unit) * sign;
 				}
 			});
 		}
 	},
 
-	influence: function influence(unit,sign) {
-		return unit.worth()*sign*1000; //FIXME Too simple?
+	influence: function influence(unit) {
+		return unit.worth()*1000; //FIXME Too simple?
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -438,7 +445,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		}
 		return oneGrid;
 
-    },
+	},
+	serializer: function serialize_InfluenceMap(obj) {
+		var args = {
+			gridRed:obj.gridRed,
+			gridBlue:obj.gridBlue
+		};
+		return [args];
+	}
 
 
 }); // declare InfluenceMap

@@ -493,7 +493,7 @@ var ShootAction = exports.ShootAction = declare(GameAction, {
 	aleatories: function aleatories(game) {
 		var shooter = this.unitById(game),
 			target = this.unitById(game, this.targetId),
-			distance = game.terrain.canShoot(shooter, target),
+			distance = game.terrain.distance(shooter.position, target.position),
 			attackCount = 0;
 		shooter.models.forEach(function (model) {
 			model.equipments.forEach(function (equipment) {
@@ -1274,6 +1274,7 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.7,
 	decay: 0.5,
+<<<<<<< HEAD
 	iterations: 25,
 
 	constructor: function InfluenceMap(game, role){
@@ -1285,6 +1286,18 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.role = role;
 
 =======
+=======
+	iterations: 2,
+
+	constructor: function InfluenceMap(args){
+		this.role=args.activePlayers[0];
+		this.width= args.terrain.width;
+		this.height= args.terrain.height;
+		this.gridRed= this.gridRed ||  this.matrix(this.width);
+		this.gridBlue= this.gridBlue ||  this.matrix(this.width);
+		this.terrain= args.terrain;
+		
+>>>>>>> StrategicUnstable
 		//this.role = role;
 		
 >>>>>>> Strategic
@@ -1297,25 +1310,42 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		return -this.grid[x][y];
 
 	},
+	getGrid:function getGrid(){
+		if (this.role=="Red")
+			return this.gridRed;
+		return this.gridBlue;
+
+	},
+	setGrid:function getGrid(grid){
+		if (this.role=="Red")
+			 this.gridRed=grid;
+		this.gridBlue=grid;
+
+	},
 	matrix:function matrix(dim){
 		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
 	},
 	update: function update(game,iterations) {
 		var influenceMap = this,
+<<<<<<< HEAD
 			grid =game.concreteInfluence|| this.grid,
 			it=iterations || this.iterations,
+=======
+			grid = this.getGrid(),
+>>>>>>> StrategicUnstable
 			pos;
 		this.role = game.activePlayer();
 		this.unitsInfluences(game);
 		for (var i = 0; i < it; i++) {
 			grid=this.spread(grid);
 		}
+		this.setGrid(grid);
 		return grid;
 	},
 	unitsInfluences: function unitsInfluences(game) {
 		var imap = this,
 			sign,
-			grid = this.grid,
+			grid = this.getGrid(),
 			posX,
 			posY;
 		for (var army in game.armies){
@@ -1330,14 +1360,23 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
+<<<<<<< HEAD
 					grid[posX][posY] = imap.influence(unit,sign) ;
+=======
+					grid[posX][posY] = imap.influence(unit) * sign;
+>>>>>>> StrategicUnstable
 				}
 			});
 		}
 	},
 
+<<<<<<< HEAD
 	influence: function influence(unit,sign) {
 		return unit.worth()*sign*1000; //FIXME Too simple?
+=======
+	influence: function influence(unit) {
+		return unit.worth()*1000; //FIXME Too simple?
+>>>>>>> StrategicUnstable
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -1384,7 +1423,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		}
 		return oneGrid;
 
-    },
+	},
+	serializer: function serialize_InfluenceMap(obj) {
+		var args = {
+			gridRed:obj.gridRed,
+			gridBlue:obj.gridBlue
+		};
+		return [args];
+	}
 
 
 }); // declare InfluenceMap
@@ -9710,7 +9756,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		if (influenceMap){
 			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
 			
-			//RENDERER.renderInfluence(g,influenceMap);
+			RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
 			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition,influenceMap:influenceMap});

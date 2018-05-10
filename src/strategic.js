@@ -54,7 +54,7 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		if (influenceMap){
 			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
 			
-			//RENDERER.renderInfluence(g,influenceMap);
+			RENDERER.renderInfluence(g,influenceMap);
 			//RENDERER.renderPath(g,moves);
 
 			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition,influenceMap:influenceMap});
