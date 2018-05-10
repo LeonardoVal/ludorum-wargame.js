@@ -19,6 +19,7 @@ module.exports = function (grunt) {
 				'basicRulePlayer_scape_then_shoot',
 				'render',
 				'strategic',
+				'astar',
 			'__epilogue__'],
 		deps: [
 			{ id: 'creatartis-base', name: 'base'},

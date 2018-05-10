@@ -82,6 +82,7 @@ var Terrain = exports.Terrain = declare({
 		//TODO initialization
 		this.width = this.map.length;
 		this.height = this.map[0].length;
+	
 	},
 
 	resetTerrain: function resetTerrain(wargame){
@@ -155,43 +156,55 @@ var Terrain = exports.Terrain = declare({
 
 		return visited;
 	},
+	canReachAStarInf: function canReachAStarInf(args){
+		var graph = new Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap,role:args.role});
 
-	/**
-	*/
-	canReach: function canReach(unit, destination, range) {
-		range = range || 12;
-		var terrain = this,
-			origin = unit.position,
-			visited = {},
-			pending = [unit.position],
-			width = this.width,
-			height = this.height,
-			SURROUNDINGS = this.SURROUNDINGS,
-            	pos, pos2, cost, cost2, delta, tile;
-		visited[origin] = 0;
-		heuristic[origin] = this.distance(origin, destination);
+		return result;
 
-		for (var i = 0; i < pending.length; i++) {
-			pos = pending[i];
-			if (pos[0] === destination[0] && pos[1] === destination[1]) {
-				return true;
-			}
-			cost = visited[pos];
-			for (var j = 0; j < SURROUNDINGS.length; j++) {
-				delta = SURROUNDINGS[j];
-				cost2 = cost + delta.cost;
-				if (cost2 > range) continue;
-				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
-				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
-				visited[pos2] = cost2;
-				heuristic[pos2] = this.distance(pos2, destination);
-				pending.push(pos2);
-			}
-			pending.sort(function (p1, p2) {
-				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
-			});
+	},
+	canReachAStar: function canReachAStar(args){
+		var graph = new Graph(this, {diagonal:true}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result =graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+
+		return result;
+
+	},
+	getInf:function getInf(pos,role,grid){
+		var x=pos[0],
+			y=pos[1];
+		if (role=="Red")
+			return grid[x][y];
+		return -grid[x][y];
+
+	},
+	heuristicInfluence: function heuristicInfluence(pos0, pos1,grid,role){
+		var d1 = Math.abs(pos1.x - pos0.x),
+			d2 = Math.abs(pos1.y - pos0.y),
+			inf= role=="Red" ? grid[pos0.x][pos0.y]: -grid[pos0.x][pos0.y];
+		return d1 + d2+inf*60;
+		
+	},
+	distanceToTurns:function distanceToTurns(distance){
+		var turns =0;
+		if (distance<=6){
+			return turns;
 		}
-		return false;
+		return turns =distance % 12===0 ?distance / 12:( distance/12)+1;
+	},
+	undefinedAsignArray: function undefinedAsign(matrix,position) {
+		matrix[position]=matrix[position]!==undefined ? matrix[position] : [];
+	},
+	sparseMatrix:function sparseMatrix(matrix,distanceVal,pos,object){
+		if (object.value!=undefined){
+		matrix[pos[0]]=matrix[pos[0]]!==undefined ? matrix[pos[0]] : [];
+		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]]!==undefined  ? matrix[pos[0]][[pos[1]]] : {};
+		matrix[pos[0]][[pos[1]]][object.key]=object.value;
+		}
 	},
 
 	// ## Visibility ##############################################################################
@@ -244,6 +257,28 @@ var Terrain = exports.Terrain = declare({
 			return distance;
 		}
 	},
+	canShootPos:function canShootPos(shooterUnitPos, targetUnitPos,shooterUnitId,targetUnitId,maxRange){
+	
+		var distance = this.distance(shooterUnitPos,targetUnitPos);
+		if (distance > maxRange) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnitPos, targetUnitPos, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos].id !== shooterUnitId &&
+						this.__unitsByPosition__[pos].id !== targetUnitId) {
+					return Infinity;
+				}
+			}
+
+			return distance;
+		}
+	},
+
+	
 
 	areaOfSight: function areaOfSight(unit, radius) {
 		radius = radius || Infinity;
@@ -296,9 +331,9 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 //var inf= new LW.InfluenceMap(game2,"Red")
 
 var InfluenceMap = exports.InfluenceMap = declare({
-	momentum: 0.67,
-	decay: 0.3,
-	iterations: 30,
+	momentum: 0.7,
+	decay: 0.5,
+	iterations: 25,
 
 	constructor: function InfluenceMap(game, role){
 		this.width= game.terrain.width;
@@ -308,15 +343,25 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.role = role;
 
 	},
+	getInf:function getInf(pos){
+		var x=pos[0],
+			y=pos[1];
+		if (this.role=="Red")
+			return this.grid[x][y];
+		return -this.grid[x][y];
+
+	},
 	matrix:function matrix(dim){
 		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
 	},
-	update: function update(game) {
+	update: function update(game,iterations) {
 		var influenceMap = this,
-			grid = this.grid,
+			grid =game.concreteInfluence|| this.grid,
+			it=iterations || this.iterations,
 			pos;
+		this.role = game.activePlayer();
 		this.unitsInfluences(game);
-		for (var i = 0; i < this.iterations; i++) {
+		for (var i = 0; i < it; i++) {
 			grid=this.spread(grid);
 		}
 		return grid;
@@ -328,7 +373,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 			posX,
 			posY;
 		for (var army in game.armies){
-			sign = army === this.role ? +1 : -1;
+			sign = "Red" ===army ? +1 : -1;
 			game.armies[army].units.forEach(function (unit){
 				if (!unit.isDead()) {
 					posX = unit.position[0] |0;
@@ -339,14 +384,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
-					grid[posX][posY] = imap.influence(unit) * sign;
+					grid[posX][posY] = imap.influence(unit,sign) ;
 				}
 			});
 		}
 	},
 
-	influence: function influence(unit) {
-		return unit.worth(); //FIXME Too simple?
+	influence: function influence(unit,sign) {
+		return unit.worth()*sign*1000; //FIXME Too simple?
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -384,16 +429,13 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  "t";
 				}
-				//else if (!isNaN(value)) {
 				else{
 					inf = this.getMomentumInf(grid,r,c,decays);
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
 				}
-				//else ( console.log("error Here");)
 			}
 		}
-		//console.log(Date.now()- start);
 		return oneGrid;
 
     },

@@ -34,7 +34,7 @@ exports.test = {
 				terrain: terrain,
 				armies: {
 					Red: new GrimFuture.BattleBrothers({ player: 'Red',
-            units: [[3,10],[3,20],[4,15],[3,2]].map(function (position) {
+            units: [[3,10],[3,20],[3,15],[3,2]].map(function (position) {
 							return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
 						})
 					}),
@@ -46,45 +46,45 @@ exports.test = {
 				}
 			});
          return game;
-	},
+  },
   example2: function example2() {
-/*
-    */
-  var terrain = new Terrain(),
-    ARMY = GrimFuture.BattleBrothers,
-    game = new Wargame({
-      terrain: terrain,
-      armies: {
-        Red: new GrimFuture.BattleBrothers({ player: 'Red',
-          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
-                new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
-                new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
-                new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
-                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
-                new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
-            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
-          ]
-        }),
-        Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
-                new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
-                new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
-                new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
-                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
-                new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
-            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
-          ]
-        })
-      }
-    });
-    return game;
-},
+    /*
+        */
+      var terrain = new Terrain(),
+        ARMY = GrimFuture.BattleBrothers,
+        game = new Wargame({
+          terrain: terrain,
+          armies: {
+            Red: new GrimFuture.BattleBrothers({ player: 'Red',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            }),
+            Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            })
+          }
+        });
+        return game;
+    },
 
   exampleAssault: function exampleAssault() {
     var terrain = new Terrain(),
@@ -129,11 +129,10 @@ exports.test = {
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+    game = new AbstractedWargame(this.example1());
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
@@ -144,8 +143,14 @@ exports.test = {
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
+      try {
+        
+      
       var terrain=  next.concreteGame.terrain;
       window.RENDERER.render(next.concreteGame);
+      } catch (error) {
+        console.log(error);
+      }
 		});
 		match.run().then(function (m) {
       console.log("randomAbstractedGame");
@@ -154,31 +159,30 @@ exports.test = {
 		});
   },
 
-  randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+	randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+		console.time("randomAbstractedGameDiscrete");
 		var players = [
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
-				new DynamicScriptingPlayer(),
-				new ludorum.players.RandomPlayer()
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity }),
+				new ludorum.players.RandomPlayer(),
 			],
-			game = new AbstractedWargame(this.example2());
-      window.match = new ludorum.Match(game, players);
-      match.events.on('begin', function (game, match) {
-        var terrain=  game.concreteGame.terrain;
-            window.RENDERER.render(game.concreteGame);
-
-      });
-      match.events.on('move', function (game, moves, match) {
-        console.log(Sermat.ser(moves));
-      });
-      match.events.on('next', function (game, next, match) {
-        var terrain=  next.concreteGame.terrain;
-        window.RENDERER.render(next.concreteGame);
-      });
-      match.run().then(function (m) {
-        console.log("randomAbstractedGameDiscrete");
-        console.log(m.result());
-      });
-    },
+			game = new AbstractedWargame(this.example1());
+		window.match = new ludorum.Match(game, players);
+		match.events.on('begin', function (game, match) {
+			var terrain=  game.concreteGame.terrain;
+			window.RENDERER.render(game.concreteGame);
+		});
+		match.events.on('move', function (game, moves, match) {
+			console.log(Sermat.ser(moves));
+		});
+		match.events.on('next', function (game, next, match) {
+			var terrain=  next.concreteGame.terrain;
+			window.RENDERER.render(next.concreteGame);
+		});
+		match.run().then(function (m) {
+			console.timeEnd("randomAbstractedGameDiscrete");
+			console.log(m.result());
+		});
+	},
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window

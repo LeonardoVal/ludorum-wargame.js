@@ -141,7 +141,7 @@ var Unit = exports.Unit = declare({
 			.bool('isEnabled', { ignore: true })
 			// .bool('isPinned', { ignore: true })
 		;
-		this.position = new Float32Array(this.position);
+	//	this.position = new Float32Array(this.position);
 	},
 
 	cost: function cost() {
@@ -750,7 +750,11 @@ var MoralAleatory = exports.MoralAleatory = declare(ludorum.aleatories.Aleatory,
 var Wargame = exports.Wargame = declare(ludorum.Game, {
 	name: 'Wargame',
 	players: ['Red', 'Blue'],
+<<<<<<< HEAD
 	rounds:4,
+=======
+	rounds:5,
+>>>>>>> Strategic
 
 	/** ## Constructor and state handling ##########################################################
 
@@ -880,6 +884,7 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 	},
 
+<<<<<<< HEAD
 	clone: function clone() { 
 		var args = Sermat.clone({ 
 			__activeUnit__: this.__activeUnit__, 
@@ -889,6 +894,17 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		args.rounds = this.rounds; 
 		args.terrain = this.terrain; 
 		return new this.constructor(args); 
+=======
+	clone: function clone() {
+		var args = Sermat.clone({
+				__activeUnit__: this.__activeUnit__,
+				armies: this.armies
+			});
+		args.round = this.round;
+		args.rounds = this.rounds;
+		args.terrain = this.terrain;
+		return new this.constructor(args);
+>>>>>>> Strategic
 	},
 
 	// ## Serialization ############################################################################
@@ -956,6 +972,15 @@ var Terrain = exports.Terrain = declare({
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
+<<<<<<< HEAD
+=======
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"000000000000000000000000000000000000000000000000",
+		"111100000000000011110000000011110000000000001111",
+		"000000000000000000000000000000000000000000000000",
+>>>>>>> Strategic
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
@@ -976,11 +1001,14 @@ var Terrain = exports.Terrain = declare({
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
+<<<<<<< HEAD
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
+=======
+>>>>>>> Strategic
 		"000000000000000000000001000000000000000000000000",
 		"000000000000000000000001000000000000000000000000",
 		"000000000000000000000001000000000000000000000000",
@@ -995,6 +1023,7 @@ var Terrain = exports.Terrain = declare({
 		//TODO initialization
 		this.width = this.map.length;
 		this.height = this.map[0].length;
+	
 	},
 
 	resetTerrain: function resetTerrain(wargame){
@@ -1068,43 +1097,55 @@ var Terrain = exports.Terrain = declare({
 
 		return visited;
 	},
+	canReachAStarInf: function canReachAStarInf(args){
+		var graph = new Graph(this, {diagonal:true,end:args.target.position,start:args.attacker.position}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result=graph.astar.search(graph, start, end,{exitCondition:args.exitCondition,heuristic:this.heuristicInfluence,influenceMap:args.influenceMap,role:args.role});
 
-	/**
-	*/
-	canReach: function canReach(unit, destination, range) {
-		range = range || 12;
-		var terrain = this,
-			origin = unit.position,
-			visited = {},
-			pending = [unit.position],
-			width = this.width,
-			height = this.height,
-			SURROUNDINGS = this.SURROUNDINGS,
-            	pos, pos2, cost, cost2, delta, tile;
-		visited[origin] = 0;
-		heuristic[origin] = this.distance(origin, destination);
+		return result;
 
-		for (var i = 0; i < pending.length; i++) {
-			pos = pending[i];
-			if (pos[0] === destination[0] && pos[1] === destination[1]) {
-				return true;
-			}
-			cost = visited[pos];
-			for (var j = 0; j < SURROUNDINGS.length; j++) {
-				delta = SURROUNDINGS[j];
-				cost2 = cost + delta.cost;
-				if (cost2 > range) continue;
-				pos2 = [pos[0] + delta.dx, pos[1] + delta.dy];
-				if (visited.hasOwnProperty(pos2) || !this.isPassable(pos2, true)) continue;
-				visited[pos2] = cost2;
-				heuristic[pos2] = this.distance(pos2, destination);
-				pending.push(pos2);
-			}
-			pending.sort(function (p1, p2) {
-				return (visited[p1] + heuristic[p1]) - (visited[p2] + heuristic[p2]);
-			});
+	},
+	canReachAStar: function canReachAStar(args){
+		var graph = new Graph(this, {diagonal:true}),
+			end = graph.grid[args.target.position[0]][args.target.position[1]],
+			start = graph.grid[args.attacker.position[0]][args.attacker.position[1]],
+			result =graph.astar.search(graph, start, end,{exitCondition:args.exitCondition});
+
+		return result;
+
+	},
+	getInf:function getInf(pos,role,grid){
+		var x=pos[0],
+			y=pos[1];
+		if (role=="Red")
+			return grid[x][y];
+		return -grid[x][y];
+
+	},
+	heuristicInfluence: function heuristicInfluence(pos0, pos1,grid,role){
+		var d1 = Math.abs(pos1.x - pos0.x),
+			d2 = Math.abs(pos1.y - pos0.y),
+			inf= role=="Red" ? grid[pos0.x][pos0.y]: -grid[pos0.x][pos0.y];
+		return d1 + d2+inf*60;
+		
+	},
+	distanceToTurns:function distanceToTurns(distance){
+		var turns =0;
+		if (distance<=6){
+			return turns;
 		}
-		return false;
+		return turns =distance % 12===0 ?distance / 12:( distance/12)+1;
+	},
+	undefinedAsignArray: function undefinedAsign(matrix,position) {
+		matrix[position]=matrix[position]!==undefined ? matrix[position] : [];
+	},
+	sparseMatrix:function sparseMatrix(matrix,distanceVal,pos,object){
+		if (object.value!=undefined){
+		matrix[pos[0]]=matrix[pos[0]]!==undefined ? matrix[pos[0]] : [];
+		matrix[pos[0]][[pos[1]]]=matrix[pos[0]][[pos[1]]]!==undefined  ? matrix[pos[0]][[pos[1]]] : {};
+		matrix[pos[0]][[pos[1]]][object.key]=object.value;
+		}
 	},
 
 	// ## Visibility ##############################################################################
@@ -1157,6 +1198,28 @@ var Terrain = exports.Terrain = declare({
 			return distance;
 		}
 	},
+	canShootPos:function canShootPos(shooterUnitPos, targetUnitPos,shooterUnitId,targetUnitId,maxRange){
+	
+		var distance = this.distance(shooterUnitPos,targetUnitPos);
+		if (distance > maxRange) {
+			return Infinity;
+		} else {
+			var sight = this.bresenham(shooterUnitPos, targetUnitPos, distance),
+				pos;
+			for (var i = 0; i < sight.length; i++) {
+				pos = sight[i];
+				if (!this.isVisible(pos) || this.__unitsByPosition__[pos] &&
+						this.__unitsByPosition__[pos].id !== shooterUnitId &&
+						this.__unitsByPosition__[pos].id !== targetUnitId) {
+					return Infinity;
+				}
+			}
+
+			return distance;
+		}
+	},
+
+	
 
 	areaOfSight: function areaOfSight(unit, radius) {
 		radius = radius || Infinity;
@@ -1209,27 +1272,42 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 //var inf= new LW.InfluenceMap(game2,"Red")
 
 var InfluenceMap = exports.InfluenceMap = declare({
-	momentum: 0.67,
-	decay: 0.3,
-	iterations: 30,
+	momentum: 0.7,
+	decay: 0.5,
+	iterations: 25,
 
 	constructor: function InfluenceMap(game, role){
 		this.width= game.terrain.width;
 		this.height= game.terrain.height;
 		this.grid= this.matrix(this.width);
 		this.terrain= game.terrain;
+<<<<<<< HEAD
 		this.role = role;
+
+=======
+		//this.role = role;
+		
+>>>>>>> Strategic
+	},
+	getInf:function getInf(pos){
+		var x=pos[0],
+			y=pos[1];
+		if (this.role=="Red")
+			return this.grid[x][y];
+		return -this.grid[x][y];
 
 	},
 	matrix:function matrix(dim){
 		return  Array(dim).fill(0).map(function(v) {return   Array(dim).fill(0).map(function(v){return 0;});});
 	},
-	update: function update(game) {
+	update: function update(game,iterations) {
 		var influenceMap = this,
-			grid = this.grid,
+			grid =game.concreteInfluence|| this.grid,
+			it=iterations || this.iterations,
 			pos;
+		this.role = game.activePlayer();
 		this.unitsInfluences(game);
-		for (var i = 0; i < this.iterations; i++) {
+		for (var i = 0; i < it; i++) {
 			grid=this.spread(grid);
 		}
 		return grid;
@@ -1241,7 +1319,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 			posX,
 			posY;
 		for (var army in game.armies){
-			sign = army === this.role ? +1 : -1;
+			sign = "Red" ===army ? +1 : -1;
 			game.armies[army].units.forEach(function (unit){
 				if (!unit.isDead()) {
 					posX = unit.position[0] |0;
@@ -1252,14 +1330,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
-					grid[posX][posY] = imap.influence(unit) * sign;
+					grid[posX][posY] = imap.influence(unit,sign) ;
 				}
 			});
 		}
 	},
 
-	influence: function influence(unit) {
-		return unit.worth(); //FIXME Too simple?
+	influence: function influence(unit,sign) {
+		return unit.worth()*sign*1000; //FIXME Too simple?
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -1297,16 +1375,13 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  "t";
 				}
-				//else if (!isNaN(value)) {
 				else{
 					inf = this.getMomentumInf(grid,r,c,decays);
 					oneGrid[r]= !oneGrid[r] ? []: oneGrid[r];
 					oneGrid[r][c] =  value * (1 - momentum) + inf * momentum;
 				}
-				//else ( console.log("error Here");)
 			}
 		}
-		//console.log(Date.now()- start);
 		return oneGrid;
 
     },
@@ -1351,7 +1426,7 @@ exports.test = {
 				terrain: terrain,
 				armies: {
 					Red: new GrimFuture.BattleBrothers({ player: 'Red',
-            units: [[3,10],[3,20],[4,15],[3,2]].map(function (position) {
+            units: [[3,10],[3,20],[3,15],[3,2]].map(function (position) {
 							return new ARMY.UNITS.BattleBrothers_Unit({ position: position });
 						})
 					}),
@@ -1363,6 +1438,7 @@ exports.test = {
 				}
 			});
          return game;
+<<<<<<< HEAD
 	},
   example2: function example2() {
 /*
@@ -1402,6 +1478,47 @@ exports.test = {
     });
     return game;
 },
+=======
+  },
+  example2: function example2() {
+    /*
+        */
+      var terrain = new Terrain(),
+        ARMY = GrimFuture.BattleBrothers,
+        game = new Wargame({
+          terrain: terrain,
+          armies: {
+            Red: new GrimFuture.BattleBrothers({ player: 'Red',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            }),
+            Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
+              units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
+                    new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
+                    new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
+                    new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
+                    new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
+                Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
+                    new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
+                Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
+              ]
+            })
+          }
+        });
+        return game;
+    },
+>>>>>>> Strategic
 
   exampleAssault: function exampleAssault() {
     var terrain = new Terrain(),
@@ -1446,11 +1563,10 @@ exports.test = {
 
 	randomAbstractedGame: function randomAbstractedGame() { //FIXME window
 		var players = [
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 1000}),
 				new ludorum.players.RandomPlayer(),
 				new ludorum.players.RandomPlayer()
 			],
-			game = new AbstractedWargame(this.example1());
+    game = new AbstractedWargame(this.example1());
 		window.match = new ludorum.Match(game, players);
 		match.events.on('begin', function (game, match) {
       var terrain=  game.concreteGame.terrain;
@@ -1461,8 +1577,14 @@ exports.test = {
 			console.log(Sermat.ser(moves));
 		});
 		match.events.on('next', function (game, next, match) {
+      try {
+        
+      
       var terrain=  next.concreteGame.terrain;
       window.RENDERER.render(next.concreteGame);
+      } catch (error) {
+        console.log(error);
+      }
 		});
 		match.run().then(function (m) {
       console.log("randomAbstractedGame");
@@ -1471,8 +1593,10 @@ exports.test = {
 		});
   },
 
-  randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+	randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
+		console.time("randomAbstractedGameDiscrete");
 		var players = [
+<<<<<<< HEAD
 				//new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
 				new DynamicScriptingPlayer(),
 				new ludorum.players.RandomPlayer()
@@ -1496,6 +1620,29 @@ exports.test = {
         console.log(m.result());
       });
     },
+=======
+				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity }),
+				new ludorum.players.RandomPlayer(),
+			],
+			game = new AbstractedWargame(this.example1());
+		window.match = new ludorum.Match(game, players);
+		match.events.on('begin', function (game, match) {
+			var terrain=  game.concreteGame.terrain;
+			window.RENDERER.render(game.concreteGame);
+		});
+		match.events.on('move', function (game, moves, match) {
+			console.log(Sermat.ser(moves));
+		});
+		match.events.on('next', function (game, next, match) {
+			var terrain=  next.concreteGame.terrain;
+			window.RENDERER.render(next.concreteGame);
+		});
+		match.run().then(function (m) {
+			console.timeEnd("randomAbstractedGameDiscrete");
+			console.log(m.result());
+		});
+	},
+>>>>>>> Strategic
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
@@ -1947,8 +2094,11 @@ var GrimFuture = exports.GrimFuture = (function () {
 	return GrimFuture;
 })();
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> Strategic
 function playerRule(priority, fun) {
  fun.priority = priority;
  return fun;
@@ -9211,6 +9361,39 @@ exports.Renderer = declare({
 			}
 		});
 	},
+	renderPath: function renderPath(wargame,path,color) {
+		var terrain = wargame.terrain;
+		this.renderScope(terrain.width, terrain.height, function (ctx) {
+			ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			for (var x = 0, width = terrain.width; x < width; x++) {
+				for (var y = 0, height = terrain.height; y < height; y++) {
+					if (!terrain.isPassable([x, y])) {
+						this.drawSquare(x, y, 1, 1, "black");
+					} else {
+						this.drawSquare(x, y, 1, 1, "#CCCCCC");
+					}
+				}
+			}
+			var renderer = this,
+				armies = wargame.armies;
+			ctx.strokeStyle = 'black';
+			ctx.font = "1px Arial";
+			for (var team in armies) {
+				armies[team].units.forEach(function (unit) {
+					if (!unit.isDead()){
+						renderer.drawSquare(unit.position[0], unit.position[1], 1, 1, unit.army.player);
+						ctx.fillStyle = 'black';
+						ctx.fillText(unit.id, unit.position[0], unit.position[1]);
+					}
+				});
+			}
+			for (var move in path) {
+			
+				renderer.drawSquare(path[move].x, path[move].y, 1, 1, color || 'red');
+				
+			}
+		});
+	},
 
 	renderSight: function renderSight(wargame, unit) {
 		unit = unit || wargame.__activeUnit__;
@@ -9471,6 +9654,8 @@ var _interpolateColor = function(color1, color2, factor) {
 */
 
 
+
+
 /** # AbstractedWargame
 
 An astracted wargame provides a strategic level by hiding part of the complexity of the wargame. The
@@ -9483,66 +9668,109 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		this.targetId = targetId;
 	},
 
-	executeMovement: function executeMovement(game, actions, update) {
+	executeMovement: function executeMovement(game, moves, update) {
 		var activePlayer = game.activePlayer(),
-			shooter = this.unitById(game, this.unitId),
+			attacker = this.unitById(game, this.unitId),
 			target = this.unitById(game, this.targetId),
-			moves = actions.filter(function (m) {
-				if (m instanceof MoveAction) {	//Desicion basada en influencia decidiendo si moverme o moverme para atacar //puede romper los movimientos
-												//
-												// Me da los movimientos en base a distancia directa,
-												// Esto supone que menor distancia = mas cerca pero caminos hace eso incorrecto
-												//deberia influir la influencia en vez de distancia directa, el que le falten menos turnos tb
-												//Deberia ir ya deberian estar ordenadas por estos
-					m.__distance__ = game.terrain.distance(m.position, target.position);
-					return true;
-				} else {
-					return false;
-				}// Esto se deberia remplazar por una eleccion basada en influencia de canShoot de beria sacar un filter
-			}),
+			canShootThisTurn=moves.shootPositions,
+			canAssaultThisTurn =moves.assaultPositions,
+			canMoveThisTurn =moves.movePositions;
 
-			approaches= moves.filter(function (m) {
-				//range = shooter.model.range
-				 //si ya la calcule para la unidad la deberia usar no la deberia pasar entre turno y turno pero deberia mantenersepor el turno
-				m.__range__ = game.terrain.canShoot(shooter, target);
-				return m.__range__ !== Infinity;
+		if (canShootThisTurn.length > 0) {
+			canShootThisTurn.sort(function (m1, m2) {//Sort por influencia tambien
+				return m2.influence - m1.influence;
 			});
-			//hooter.areaOfSight=areaOfSight;
-		//	console.log("moves"+moves);
-
-		//	console.log("ap"+approaches);
-		if (approaches.length > 0) {
-			approaches.sort(function (m1, m2) {//Sort por influencia tambien
-				return m1.__range__ - m2.__range__;
-			});
-			return game.next(obj(activePlayer, approaches[0]), null, update);
-		} else {
-			moves.sort(function (m1, m2) { //Si no hay disparo me muevo
-											//Esto tambien deberia hacerlo por influencia y menos pasos// si primero o influencia
-				return m1.__distance__ - m2.__distance__;
-			});
-
-			return game.next(obj(activePlayer, moves[0]), null, update);
+			
+			game=game.next(obj(activePlayer,new MoveAction(attacker.id, canShootThisTurn[0].position,false)), null, update);
+			game=game.next(obj(activePlayer, new ShootAction(attacker.id, target.id)));
+			if (game.isContingent) {
+				game = game.randomNext();
+			}	
+		}else {
+			game=game.next(obj(activePlayer, new MoveAction(attacker.id, canMoveThisTurn[canMoveThisTurn.length-1].position,true)), null, update);
 		}
-
+		if (game.__activeUnit__ && g.__activeUnit__.id === attack.unitId) {
+			game = game.next(obj(activePlayer, new EndTurnAction(attacker.id)), null, update);
+		}
+		return game;
+	},
+	synchronizeMetagame: function synchronizeMetagame() {
+		this.terrain.resetTerrain(this);
 	},
 
 
-	getShots: function getShots(game, actions) {
-		var attack = this;
-		actions = actions || game.moves()[game.activePlayer()];
-		return actions.filter(function (m) {
-			return m instanceof ShootAction && m.targetId === attack.targetId;
-		});
+	strategicPositions:function strategicPositions(abstractedGame,influenceMap){
+		
+		var g = abstractedGame,
+			attacker = this.unitById(g, this.unitId),
+			target = this.unitById(g, this.targetId),
+			moves,
+			role=g.activePlayer(),
+			posibleActions={movePositions:[],shootPositions:[],assaultPositions:[]};
+		if (influenceMap){
+			moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,influenceMap:influenceMap,role:role});
+			
+			//RENDERER.renderInfluence(g,influenceMap);
+			//RENDERER.renderPath(g,moves);
+
+			//moves= g.terrain.canReachAStarInf({target:target,attacker:attacker,exitCondition,influenceMap:influenceMap});
+		}else{
+			moves =g.terrain.canReachAStar({target:target,attacker:attacker});
+		}
+		moves.unshift({x:attacker.position[0],y:attacker.position[1]});
+		
+		for (var i =0; i<moves.length;i++) {
+
+
+			var pos=moves[i],
+				canShootPos= g.terrain.canShootPos([pos.x,pos.y], target.position, this.unitId,this.targetId,attacker.maxRange()),
+				shootDistance= canShootPos!==Infinity? canShootPos: undefined,
+				influence=this.getInf([pos.x,pos.y],role,influenceMap),
+				canShootThisTurn= i<=6 && shootDistance!==undefined,
+				canAssaultThisTurn = shootDistance<=2,
+				canMoveThisTurn = i <=12;
+			if ((target.position[0]==pos.x && target.position[1]==pos.y)){
+				continue;
+			}
+			if (canShootThisTurn){ //CanShootThisTurn
+				posibleActions.shootPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});
+			}else if (canMoveThisTurn){
+				posibleActions.movePositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
+			}else if (canAssaultThisTurn){
+				posibleActions.assaultPositions.push({position:[pos.x,pos.y],influence:influence,shootDistance:shootDistance});	
+			}
+		}
+		return posibleActions;
+		
+
+	},
+	getInf:function getInf(pos,role,grid){
+		var x=pos[0],
+			y=pos[1];
+		if (role=="Red")
+			return grid[x][y];
+		return -grid[x][y];
+
 	},
 
 	execute: function execute(abstractedGame, update) {
+		abstractedGame.concreteGame.synchronizeMetagame();
 		var g = abstractedGame.concreteGame,
 			attacker = this.unitById(g, this.unitId),
 			target = this.unitById(g, this.targetId),
-			activePlayer = g.activePlayer();
+			activePlayer = g.activePlayer(),
+			attack=this,
+		//	areaOfSight=g.terrain.areaOfSight(target, attacker.maxRange()),
+			posibleActions=this.strategicPositions(g,abstractedGame.concreteInfluence);
+		
+
+		if (g.result()){
+			return null;
+
+		}
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
+<<<<<<< HEAD
 		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
@@ -9564,6 +9792,13 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 		raiseIf(!(g instanceof Wargame), "Executing action ", this,
 			" did not yield a Wargame instance!");
+=======
+
+		
+		g = this.executeMovement(g, posibleActions, update);
+
+		raiseIf(!(g instanceof Wargame), "Executing action ", this, " did not yield a Wargame instance!");
+>>>>>>> Strategic
 		abstractedGame.concreteGame = g;
 		return abstractedGame;
 	},
@@ -9591,6 +9826,9 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		this.players = wargame.players;
 		ludorum.Game.call(this, wargame.activePlayer());
 		this.concreteGame = wargame;
+		this.influenceMap =new InfluenceMap(wargame);
+		this.concreteInfluence=this.influenceMap.update(wargame);
+
 	},
 
 	/**
@@ -9636,11 +9874,17 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 			}
 		}
 		nextGame.activePlayers = nextGame.concreteGame.activePlayers;
+		nextGame.concreteInfluence=nextGame.influenceMap.update(nextGame.concreteGame,1);
 		return nextGame;
 	},
 
+<<<<<<< HEAD
 	clone: function clone() { 
 		return new this.constructor(this.concreteGame.clone()); 
+=======
+	clone: function clone() {
+		return new this.constructor(this.concreteGame.clone());
+>>>>>>> Strategic
 	},
 
 	'static __SERMAT__': {
@@ -9661,6 +9905,404 @@ var ConcreteRandomPlayer = exports.ConcreteRandomPlayer = declare(ludorum.player
 		return ludorum.players.RandomPlayer.prototype.decision.call(this, game, player);
 	}
 });
+
+
+
+
+
+/**
+ 
+var graph = new LW.Graph([
+		[0,0,0,1],
+		[1,0,0,1],
+		[1,1,0,0]
+	]);
+	var start = graph.grid[0][0];
+	var end = graph.grid[1][2];
+	var result = graph.astar.search(graph, start, end);
+  
+ */
+
+var astar = exports.astar = declare({
+  pathTo:function pathTo(node) {
+    var curr = node,
+        path = [];
+    while (curr.parent) {
+      path.unshift(curr);
+      curr = curr.parent;
+    }
+    return path;
+  },
+  getHeap: function getHeap() {
+    return new BinaryHeap(function(node) {
+      return node.f;
+    });
+  },
+  /**
+  * Perform an A* Search on a graph given a start and end node.
+  * @param {Graph} graph
+  * @param {GridNode} start
+  * @param {GridNode} end
+  * @param {Object} [options]
+  * @param {bool} [options.closest] Specifies whether to return the
+             path to the closest node if the target is unreachable.
+  * @param {Function} [options.heuristic] Heuristic function (see
+  *          astar.heuristics).
+  */
+  search: function(graph, start, end, options) {
+    graph.cleanDirty();
+    options = options || {};
+    
+    var heuristic = options.heuristic || this.heuristics.manhattan,
+        closest = options.closest || false,
+        openHeap = this.getHeap(),
+        exitCondition=options.exitCondition,
+        closestNode = start; // set the start node to be the closest if required
+
+    start.h = heuristic(start, end,options.influenceMap,options.role);
+    graph.markDirty(start);
+
+    openHeap.push(start);
+
+    while (openHeap.size() > 0) {
+
+      // Grab the lowest f(x) to process next.  Heap keeps this sorted for us.
+      var currentNode = openHeap.pop();
+
+      // End case -- result has been found, return the traced path.
+      if (currentNode === end  ||  (exitCondition && exitCondition[currentNode.x+","+currentNode.y])) {
+        return this.pathTo(currentNode);
+      }
+      // Normal case -- move currentNode from open to closed, process each of its neighbors.
+      currentNode.closed = true;
+
+      // Find all neighbors for the current node.
+      var neighbors = graph.neighbors(currentNode);
+
+      for (var i = 0, il = neighbors.length; i < il; ++i) {
+        var neighbor = neighbors[i];
+
+        if (neighbor.closed || neighbor.isWall()) {
+          // Not a valid node to process, skip to next neighbor.
+          continue;
+        }
+
+        // The g score is the shortest distance from start to current node.
+        // We need to check if the path we have arrived at this neighbor is the shortest one we have seen yet.
+        var gScore = currentNode.g + neighbor.getCost(currentNode);
+        var beenVisited = neighbor.visited;
+
+        if (!beenVisited || gScore < neighbor.g) {
+
+          // Found an optimal (so far) path to this node.  Take score for node to see how good it is.
+          neighbor.visited = true;
+          neighbor.parent = currentNode;
+          neighbor.h = neighbor.h || heuristic(neighbor, end,options.influenceMap);
+          neighbor.g = gScore;
+          neighbor.f = neighbor.g + neighbor.h;
+          graph.markDirty(neighbor);
+          if (closest) {
+            // If the neighbour is closer than the current closestNode or if it's equally close but has
+            // a cheaper path than the current closest node then it becomes the closest node
+            if (neighbor.h < closestNode.h || (neighbor.h === closestNode.h && neighbor.g < closestNode.g)) {
+              closestNode = neighbor;
+            }
+          }
+
+          if (!beenVisited) {
+            // Pushing to heap will put it in proper place based on the 'f' value.
+            openHeap.push(neighbor);
+          } else {
+            // Already seen the node, but since it has been rescored we need to reorder it in the heap
+            openHeap.rescoreElement(neighbor);
+          }
+        }
+      }
+    }
+
+    if (closest) {
+      return this.pathTo(closestNode);
+    }
+
+    // No result was found - empty array signifies failure to find path.
+    return [];
+  },
+  // See list of heuristics: http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
+  heuristics: {
+    manhattan: function(pos0, pos1) {
+      var d1 = Math.abs(pos1.x - pos0.x);
+      var d2 = Math.abs(pos1.y - pos0.y);
+      return d1 + d2;
+    },
+    diagonal: function(pos0, pos1) {
+      var D = 1;
+      var D2 = Math.sqrt(2);
+      var d1 = Math.abs(pos1.x - pos0.x);
+      var d2 = Math.abs(pos1.y - pos0.y);
+      return (D * (d1 + d2)) + ((D2 - (2 * D)) * Math.min(d1, d2));
+    }
+  },
+  cleanNode: function(node) {
+    node.f = 0;
+    node.g = 0;
+    node.h = 0;
+    node.visited = false;
+    node.closed = false;
+    node.parent = null;
+  }
+});
+
+
+var Graph = exports.Graph = declare({
+
+  constructor: function Graph(terrain, options) {
+    options = options || {};
+    this.nodes = [];
+    this.diagonal = !!options.diagonal;
+    this.grid = [];
+    this.astar=new astar();
+    var node,x,y,valueOfNode,row,check1,check2;
+    for (x = 0; x < terrain.width; x++) {
+      this.grid[x] = [];
+      for (y = 0; y < terrain.height; y++) {
+          check1= options.start[0] ==x && options.start[1] ==y;
+          check1= options.end[0] ==x && options.end[1] ==y;
+          valueOfNode=(terrain.isPassable([x,y], true) || check1 || check2) ===true?1: 0;
+          node = new GridNode(x, y, valueOfNode);
+          this.grid[x][y] = node;
+          this.nodes.push(node);
+      }
+    }
+    this.init();
+  },
+  init : function init() {
+    this.dirtyNodes = [];
+    for (var i = 0; i < this.nodes.length; i++) {
+      this.astar.cleanNode(this.nodes[i]);
+    }
+  },
+  cleanDirty :  function cleanDirty() {
+    for (var i = 0; i < this.dirtyNodes.length; i++) {
+      this.astar.cleanNode(this.dirtyNodes[i]);
+    }
+    this.dirtyNodes = [];
+  },
+  markDirty: function markDirty(node) {
+    this.dirtyNodes.push(node);
+  },
+  neighbors : function neighbors (node) {
+    var ret = [];
+    var x = node.x;
+    var y = node.y;
+    var grid = this.grid;
+
+    // West
+    if (grid[x - 1] && grid[x - 1][y]) {
+      ret.push(grid[x - 1][y]);
+    }
+
+    // East
+    if (grid[x + 1] && grid[x + 1][y]) {
+      ret.push(grid[x + 1][y]);
+    }
+
+    // South
+    if (grid[x] && grid[x][y - 1]) {
+      ret.push(grid[x][y - 1]);
+    }
+
+    // North
+    if (grid[x] && grid[x][y + 1]) {
+      ret.push(grid[x][y + 1]);
+    }
+
+    if (this.diagonal) {
+      // Southwest
+      if (grid[x - 1] && grid[x - 1][y - 1]) {
+        ret.push(grid[x - 1][y - 1]);
+      }
+
+      // Southeast
+      if (grid[x + 1] && grid[x + 1][y - 1]) {
+        ret.push(grid[x + 1][y - 1]);
+      }
+
+      // Northwest
+      if (grid[x - 1] && grid[x - 1][y + 1]) {
+        ret.push(grid[x - 1][y + 1]);
+      }
+
+      // Northeast
+      if (grid[x + 1] && grid[x + 1][y + 1]) {
+        ret.push(grid[x + 1][y + 1]);
+      }
+    }
+
+    return ret;
+  },
+  toString : function toString() {
+    var graphString = [];
+    var nodes = this.grid;
+    for (var x = 0; x < nodes.length; x++) {
+      var rowDebug = [];
+      var row = nodes[x];
+      for (var y = 0; y < row.length; y++) {
+        rowDebug.push(row[y].weight);
+      }
+      graphString.push(rowDebug.join(" "));
+    }
+    return graphString.join("\n");
+  },
+});
+
+
+var GridNode = exports.GridNode = declare({
+  constructor: function GridNode(x, y, weight) {
+    this.x = x;
+    this.y = y;
+    this.weight = weight;
+  },
+  toString : function toString() {
+    return "[" + this.x + " " + this.y + "]";
+  },
+  getCost : function getCost(fromNeighbor) {
+    // Take diagonal weight into consideration.
+    if (fromNeighbor && fromNeighbor.x != this.x && fromNeighbor.y != this.y) {
+      return this.weight * 1.41421;
+    }
+    return this.weight;
+  },
+  isWall : function isWall() {
+    return this.weight === 0;
+  },
+
+});
+
+var BinaryHeap = exports.BinaryHeap = declare({
+ constructor: function BinaryHeap(scoreFunction)  {
+    this.content = [];
+    this.scoreFunction = scoreFunction;
+  },
+  push: function(element) {
+    // Add the new element to the end of the array.
+    this.content.push(element);
+
+    // Allow it to sink down.
+    this.sinkDown(this.content.length - 1);
+  },
+  pop: function() {
+    // Store the first element so we can return it later.
+    var result = this.content[0];
+    // Get the element at the end of the array.
+    var end = this.content.pop();
+    // If there are any elements left, put the end element at the
+    // start, and let it bubble up.
+    if (this.content.length > 0) {
+      this.content[0] = end;
+      this.bubbleUp(0);
+    }
+    return result;
+  },
+  remove: function(node) {
+    var i = this.content.indexOf(node);
+
+    // When it is found, the process seen in 'pop' is repeated
+    // to fill up the hole.
+    var end = this.content.pop();
+
+    if (i !== this.content.length - 1) {
+      this.content[i] = end;
+
+      if (this.scoreFunction(end) < this.scoreFunction(node)) {
+        this.sinkDown(i);
+      } else {
+        this.bubbleUp(i);
+      }
+    }
+  },
+  size: function() {
+    return this.content.length;
+  },
+  rescoreElement: function(node) {
+    this.sinkDown(this.content.indexOf(node));
+  },
+  sinkDown: function(n) {
+    // Fetch the element that has to be sunk.
+    var element = this.content[n];
+
+    // When at 0, an element can not sink any further.
+    while (n > 0) {
+
+      // Compute the parent element's index, and fetch it.
+      var parentN = ((n + 1) >> 1) - 1;
+      var parent = this.content[parentN];
+      // Swap the elements if the parent is greater.
+      if (this.scoreFunction(element) < this.scoreFunction(parent)) {
+        this.content[parentN] = element;
+        this.content[n] = parent;
+        // Update 'n' to continue at the new position.
+        n = parentN;
+      }
+      // Found a parent that is less, no need to sink any further.
+      else {
+        break;
+      }
+    }
+  },
+  bubbleUp: function(n) {
+    // Look up the target element and its score.
+    var length = this.content.length;
+    var element = this.content[n];
+    var elemScore = this.scoreFunction(element);
+
+    while (true) {
+      // Compute the indices of the child elements.
+      var child2N = (n + 1) << 1;
+      var child1N = child2N - 1;
+      // This is used to store the new position of the element, if any.
+      var swap = null;
+      var child1Score;
+      // If the first child exists (is inside the array)...
+      if (child1N < length) {
+        // Look it up and compute its score.
+        var child1 = this.content[child1N];
+        child1Score = this.scoreFunction(child1);
+
+        // If the score is less than our element's, we need to swap.
+        if (child1Score < elemScore) {
+          swap = child1N;
+        }
+      }
+
+      // Do the same checks for the other child.
+      if (child2N < length) {
+        var child2 = this.content[child2N];
+        var child2Score = this.scoreFunction(child2);
+        if (child2Score < (swap === null ? elemScore : child1Score)) {
+          swap = child2N;
+        }
+      }
+
+      // If the element needs to be moved, swap it, and continue.
+      if (swap !== null) {
+        this.content[n] = this.content[swap];
+        this.content[swap] = element;
+        n = swap;
+      }
+      // Otherwise, we are done.
+      else {
+        break;
+      }
+    }
+  }
+
+});
+
+
+
+
+
+
 
 /** See __prologue__.js
 */

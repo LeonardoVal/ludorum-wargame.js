@@ -134,15 +134,15 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 	},
 
-	clone: function clone() { 
-		var args = Sermat.clone({ 
-			__activeUnit__: this.__activeUnit__, 
-			armies: this.armies 
-		}); 
-		args.round = this.round; 
-		args.rounds = this.rounds; 
-		args.terrain = this.terrain; 
-		return new this.constructor(args); 
+	clone: function clone() {
+		var args = Sermat.clone({
+				__activeUnit__: this.__activeUnit__,
+				armies: this.armies
+			});
+		args.round = this.round;
+		args.rounds = this.rounds;
+		args.terrain = this.terrain;
+		return new this.constructor(args);
 	},
 
 	// ## Serialization ############################################################################

@@ -109,7 +109,7 @@ var Unit = exports.Unit = declare({
 			.bool('isEnabled', { ignore: true })
 			// .bool('isPinned', { ignore: true })
 		;
-		this.position = new Float32Array(this.position);
+	//	this.position = new Float32Array(this.position);
 	},
 
 	cost: function cost() {

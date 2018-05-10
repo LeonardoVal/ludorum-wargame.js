@@ -10,16 +10,14 @@ var path = require('path'),
 	capataz = require('capataz'),
 	base = require('creatartis-base'),
 	ludorum = require('ludorum'),
-	ludorum_game_colograph = require('../build/ludorum-wargame'),
+	ludorum_wargame = require('../build/ludorum-wargame'),
 
 	server = capataz.Capataz.run({
 		port: 8080,
 		workerCount: 4,
 		desiredEvaluationTime: 20000,
-		customFiles: [
-			{ module: ludorum },
-			{ module: ludorum_game_colograph }
-		],
+		maxTaskSize: 1,
+		customFiles: [{ module: ludorum }, { module: ludorum_wargame }],
 		logFile: base.Text.formatDate(null, '"./tests/logs/simulation-"yyyymmdd-hhnnss".txt"'),
 		maxDelay: 10000,
 		maxRetries: 1000,
@@ -28,7 +26,32 @@ var path = require('path'),
 
 // ## Jobs #########################################################################################
 
-var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario, useAbstracted) {
+var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario) {
+	var playersByName = {
+			UCT10:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity });
+			},
+			UCT25:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount: 25, timeCap: Infinity });
+			},
+			UCT50:function (){
+				return new ludorum.players.MonteCarloPlayer({ simulationCount:50, timeCap: Infinity });
+			},
+			RAN:function (){
+				return new ludorum.players.RandomPlayer();
+			}
+		},
+		player1= playersByName[playerName1],
+		player2= playersByName[playerName2];
+
+	base.raiseIf(typeof player1 !== 'function', 'Invalid player 1: ', playerName1);
+	base.raiseIf(typeof player2 !== 'function', 'Invalid player 2: ', playerName2);
+	
+	var players = [player1(), player2()],
+		game = new ludorum_wargame.AbstractedWargame (ludorum_wargame.test[scenario]()),
+		match = new ludorum.Match(game, players);
+	
+var jobFunctionDS = function (ludorum, ludorum_wargame, playerName1, playerName2, scenario, useAbstracted) {
 	var playersByName = {
 			RAN: function () {
 				return new ludorum.players.RandomPlayer();
@@ -73,18 +96,16 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 
 // ## Main #########################################################################################
 
-var MATCH_COUNT = 1000,
+var MATCH_COUNT = 100,
 	STATS = new base.Statistics(),
-	SCENARIOS = ['example1'],
-	DUELS = ['DS_SP-DS_SP', 'DS-DS_SP', 'DS_SP-DS', 'DS_SP-RAN', 'RAN-DS_SP',
-		//'RAN-RAN', //'RAN-DS', 'DS-RAN', 'DS-DS',
-		//'BRP1-BRP1', 'BRP1-RAN', 'RAN-BRP1', 'BRP1-DS', 'DS-BRP1',
-		//'BRP2-BRP2', 'BRP2-RAN', 'RAN-BRP2', 'BRP2-DS', 'DS-BRP2',
-		//'BRP3-BRP3', 'BRP3-RAN', 'RAN-BRP3', 'BRP3-DS', 'DS-BRP3',
-		//'BRP4-BRP4', 'BRP4-RAN', 'RAN-BRP4', 'BRP4-DS', 'DS-BRP4'
+	SCENARIOS = ['example2'],
+	DUELS = ['RAN-RAN','RAN-UCT10','RAN-UCT25','RAN-UCT50',
+		'UCT10-RAN','UCT10-UCT10','UCT10-UCT25','UCT10-UCT50',
+		'UCT25-RAN','UCT25-UCT10','UCT25-UCT25','UCT25-UCT50',
+		'UCT50-RAN','UCT50-UCT10','UCT50-UCT25','UCT50-UCT50'
 	],
-	USE_ABSTRACTED = false,//true,
 	FINISHED_COUNT = 0;
+	USE_ABSTRACTED = false,//true,
 
 base.Future.all(
 	base.Iterable.range(MATCH_COUNT).product(DUELS, SCENARIOS).mapApply(function (i, duel, scenario) {
@@ -96,10 +117,8 @@ base.Future.all(
 		}).then(function (data) {
 			if (data.Red > 0) {
 				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
-				//STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
 			} else if (data.Red < 0) {
 				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
-				//STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
 			} else {
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}
