@@ -35,6 +35,9 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 			DS: function () {
 				return new ludorum_wargame.DynamicScriptingPlayer();
 			},
+			DS_SP: function () {
+				return new ludorum_wargame.DynamicScriptingSinPesosPlayer();
+			},
 			BRP1: function () {
 				return new ludorum_wargame.BasicRulePlayer_assault();
 			},
@@ -68,9 +71,9 @@ var jobFunction = function (ludorum, ludorum_wargame, playerName1, playerName2, 
 
 var MATCH_COUNT = 1000,
 	STATS = new base.Statistics(),
-	SCENARIOS = ['example2'],
-	DUELS = [
-		'RAN-RAN', //'RAN-DS', 'DS-RAN', 'DS-DS',
+	SCENARIOS = ['example1'],
+	DUELS = ['DS_SP-DS_SP', 'DS-DS_SP', 'DS_SP-DS', 'DS_SP-RAN', 'RAN-DS_SP',
+		//'RAN-RAN', //'RAN-DS', 'DS-RAN', 'DS-DS',
 		//'BRP1-BRP1', 'BRP1-RAN', 'RAN-BRP1', 'BRP1-DS', 'DS-BRP1',
 		//'BRP2-BRP2', 'BRP2-RAN', 'RAN-BRP2', 'BRP2-DS', 'DS-BRP2',
 		//'BRP3-BRP3', 'BRP3-RAN', 'RAN-BRP3', 'BRP3-DS', 'DS-BRP3',
@@ -88,10 +91,10 @@ base.Future.all(
 		}).then(function (data) {
 			if (data.Red > 0) {
 				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
-				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
+				//STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
 			} else if (data.Red < 0) {
 				STATS.add({ key: 'victories', duel: duel, scenario: scenario, role: 'Blue' }, data.Blue);
-				STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
+				//STATS.add({ key: 'defeats', duel: duel, scenario: scenario, role: 'Red' }, data.Red);
 			} else {
 				STATS.add({ key: 'tied', duel: duel, scenario: scenario });
 			}

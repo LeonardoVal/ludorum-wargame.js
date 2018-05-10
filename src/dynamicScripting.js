@@ -186,18 +186,18 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
 adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
   var rules = this.rules;
 
-  for (reg=0;reg<rules.length;reg++){
-    if(rules[reg][1] < 0){
-      //console.log("rules[reg][1]<0");
-      //console.log(rules[reg][0].name);
-      rules[reg][1] = rules[reg][1]*(-1);
-    }
-    if(isNaN(rules[reg][1])){
-      //console.log("isNaN(rules[reg][1])");
-      //console.log(rules[reg][0].name);
-      raiseIf(isNaN(rules[reg][1]), 'rules[reg][1]');
-    }
-  }
+  // for (reg=0;reg<rules.length;reg++){
+  //   if(rules[reg][1] < 0){
+  //     //console.log("rules[reg][1]<0");
+  //     //console.log(rules[reg][0].name);
+  //     rules[reg][1] = rules[reg][1]*(-1);
+  //   }
+  //   if(isNaN(rules[reg][1])){
+  //     //console.log("isNaN(rules[reg][1])");
+  //     //console.log(rules[reg][0].name);
+  //     raiseIf(isNaN(rules[reg][1]), 'rules[reg][1]');
+  //   }
+  // }
 
   var reglasAplicadas = [];
   roundActions.forEach(function (ra){
@@ -1159,7 +1159,7 @@ inicial en el juego, luego de un ataque melee realizado por la assaulter a la ta
   },
 
  // ## Rules /////////////////////////////////////////////////////////////////
-
+//80
 //-------------------------priority 12 ex16-----------------------------------------
 /* si es la ronda final y voy perdiendo, y paso a perder si matan a unitX,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2,
@@ -1452,7 +1452,7 @@ rule_10B: playerRule(10, function rule_10B(game, player){
   }
  return null;
 }),
-
+//70
 
 //-------------------------priority 9 ex11-----------------------------------------
 /*si ronda = 2 y this.easiestToKill(enemyUnits,unitY) y
@@ -1742,6 +1742,7 @@ rule_7E: playerRule(7, function rule_7E(game, player){
   }
  return null;
 }),
+//60
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 !this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitX2.cost()
 y !this.canAssist(game,player,unitX,unitX2) y
@@ -1977,7 +1978,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
  return null;
 }),
 
-
+//50
 
 
  //-------------------------priority 4-----------------------------------------
@@ -2180,6 +2181,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
+   //40
 /*en la ronda 3, si hay una unidad aliada que cueste mas que unitX y puede asistirla,
    y no pueden matar a unitX, entonces asistir a la aliada*/
    rule_3F: playerRule(3, function rule_F(game, player){
@@ -2379,6 +2381,7 @@ rule_3O: playerRule(3, function rule_3O(game, player){
   }
  return null;
 }),
+//30
 rule_3P: playerRule(3, function rule_3P(game, player){
   if (game.round === 2){
     var possibleUnits = this.playerPossibleUnits;
@@ -2580,6 +2583,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
+ //20
  // si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir
  rule_2F: playerRule(2, function rule_2F(game, player){
    if (game.round === 0){
@@ -2790,6 +2794,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
+ //10
  // si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir
  rule_2P: playerRule(2, function rule_2P(game, player){
    if (game.round === 2){
