@@ -750,11 +750,7 @@ var MoralAleatory = exports.MoralAleatory = declare(ludorum.aleatories.Aleatory,
 var Wargame = exports.Wargame = declare(ludorum.Game, {
 	name: 'Wargame',
 	players: ['Red', 'Blue'],
-<<<<<<< HEAD
 	rounds:4,
-=======
-	rounds:5,
->>>>>>> Strategic
 
 	/** ## Constructor and state handling ##########################################################
 
@@ -884,17 +880,6 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		}
 	},
 
-<<<<<<< HEAD
-	clone: function clone() { 
-		var args = Sermat.clone({ 
-			__activeUnit__: this.__activeUnit__, 
-			armies: this.armies 
-		}); 
-		args.round = this.round; 
-		args.rounds = this.rounds; 
-		args.terrain = this.terrain; 
-		return new this.constructor(args); 
-=======
 	clone: function clone() {
 		var args = Sermat.clone({
 				__activeUnit__: this.__activeUnit__,
@@ -904,7 +889,6 @@ var Wargame = exports.Wargame = declare(ludorum.Game, {
 		args.rounds = this.rounds;
 		args.terrain = this.terrain;
 		return new this.constructor(args);
->>>>>>> Strategic
 	},
 
 	// ## Serialization ############################################################################
@@ -972,15 +956,6 @@ var Terrain = exports.Terrain = declare({
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-<<<<<<< HEAD
-=======
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"000000000000000000000000000000000000000000000000",
-		"111100000000000011110000000011110000000000001111",
-		"000000000000000000000000000000000000000000000000",
->>>>>>> Strategic
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
@@ -1001,14 +976,11 @@ var Terrain = exports.Terrain = declare({
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-<<<<<<< HEAD
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
 		"000000000000000000000000000000000000000000000000",
-=======
->>>>>>> Strategic
 		"000000000000000000000001000000000000000000000000",
 		"000000000000000000000001000000000000000000000000",
 		"000000000000000000000001000000000000000000000000",
@@ -1274,19 +1246,6 @@ Terrain.BRESENHAM_CACHE = Terrain.prototype.BRESENHAM_CACHE = (function (radius)
 var InfluenceMap = exports.InfluenceMap = declare({
 	momentum: 0.7,
 	decay: 0.5,
-<<<<<<< HEAD
-	iterations: 25,
-
-	constructor: function InfluenceMap(game, role){
-		this.width= game.terrain.width;
-		this.height= game.terrain.height;
-		this.grid= this.matrix(this.width);
-		this.terrain= game.terrain;
-<<<<<<< HEAD
-		this.role = role;
-
-=======
-=======
 	iterations: 2,
 
 	constructor: function InfluenceMap(args){
@@ -1297,18 +1256,8 @@ var InfluenceMap = exports.InfluenceMap = declare({
 		this.gridBlue= this.gridBlue ||  this.matrix(this.width);
 		this.terrain= args.terrain;
 		
->>>>>>> StrategicUnstable
 		//this.role = role;
 		
->>>>>>> Strategic
-	},
-	getInf:function getInf(pos){
-		var x=pos[0],
-			y=pos[1];
-		if (this.role=="Red")
-			return this.grid[x][y];
-		return -this.grid[x][y];
-
 	},
 	getGrid:function getGrid(){
 		if (this.role=="Red")
@@ -1327,12 +1276,7 @@ var InfluenceMap = exports.InfluenceMap = declare({
 	},
 	update: function update(game,iterations) {
 		var influenceMap = this,
-<<<<<<< HEAD
-			grid =game.concreteInfluence|| this.grid,
-			it=iterations || this.iterations,
-=======
 			grid = this.getGrid(),
->>>>>>> StrategicUnstable
 			pos;
 		this.role = game.activePlayer();
 		this.unitsInfluences(game);
@@ -1360,23 +1304,14 @@ var InfluenceMap = exports.InfluenceMap = declare({
 					}else if (!grid[posX][posY]){
 						grid[posX][posY]= 0;
 					}
-<<<<<<< HEAD
-					grid[posX][posY] = imap.influence(unit,sign) ;
-=======
 					grid[posX][posY] = imap.influence(unit) * sign;
->>>>>>> StrategicUnstable
 				}
 			});
 		}
 	},
 
-<<<<<<< HEAD
-	influence: function influence(unit,sign) {
-		return unit.worth()*sign*1000; //FIXME Too simple?
-=======
 	influence: function influence(unit) {
 		return unit.worth()*1000; //FIXME Too simple?
->>>>>>> StrategicUnstable
 	},
 	getMomentumInf: function getMomentumInf(grid,r,c,decays){
 		var v,
@@ -1484,47 +1419,6 @@ exports.test = {
 				}
 			});
          return game;
-<<<<<<< HEAD
-	},
-  example2: function example2() {
-/*
-    */
-  var terrain = new Terrain(),
-    ARMY = GrimFuture.BattleBrothers,
-    game = new Wargame({
-      terrain: terrain,
-      armies: {
-        Red: new GrimFuture.BattleBrothers({ player: 'Red',
-          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [12,4], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
-                new ARMY.UNITS.AssaultBrothers_Unit({ position: [12,6], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
-                new ARMY.UNITS.Engineers_Unit({ position: [12,8], models: [new ARMY.MODELS.Engineer()]}),
-                new ARMY.UNITS.SupportBikers_Unit({ position: [2,7], models: [new ARMY.MODELS.SupportBiker()]}),
-                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [12,10], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
-                new ARMY.UNITS.NuevoMelees_Unit({ position: [12,12], models:
-            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
-          ]
-        }),
-        Blue: new GrimFuture.BattleBrothers({ player: 'Blue',
-          units: [new ARMY.UNITS.BattleBrothers_Unit({ position: [36,4], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.BattleBrother();})}),
-                new ARMY.UNITS.AssaultBrothers_Unit({ position: [36,6], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.AssaultBrother();})}),
-                new ARMY.UNITS.Engineers_Unit({ position: [36,8], models: [new ARMY.MODELS.Engineer()]}),
-                new ARMY.UNITS.SupportBikers_Unit({ position: [46,7], models: [new ARMY.MODELS.SupportBiker()]}),
-                new ARMY.UNITS.NuevoFastAttacks_Unit({ position: [36,10], models:
-            Array.apply(null, {length: 5}).map(function(){ return new ARMY.MODELS.NuevoFastAttack();})}),
-                new ARMY.UNITS.NuevoMelees_Unit({ position: [36,12], models:
-            Array.apply(null, {length: 3}).map(function(){ return new ARMY.MODELS.NuevoMelee();})})
-          ]
-        })
-      }
-    });
-    return game;
-},
-=======
   },
   example2: function example2() {
     /*
@@ -1564,7 +1458,6 @@ exports.test = {
         });
         return game;
     },
->>>>>>> Strategic
 
   exampleAssault: function exampleAssault() {
     var terrain = new Terrain(),
@@ -1642,31 +1535,6 @@ exports.test = {
 	randomAbstractedGameDiscrete: function randomAbstractedGameDiscrete() { //FIXME window
 		console.time("randomAbstractedGameDiscrete");
 		var players = [
-<<<<<<< HEAD
-				//new ludorum.players.MonteCarloPlayer({ simulationCount: 100, timeCap: 20000 }),
-				new DynamicScriptingPlayer(),
-				new ludorum.players.RandomPlayer()
-			],
-			game = new AbstractedWargame(this.example2());
-      window.match = new ludorum.Match(game, players);
-      match.events.on('begin', function (game, match) {
-        var terrain=  game.concreteGame.terrain;
-            window.RENDERER.render(game.concreteGame);
-
-      });
-      match.events.on('move', function (game, moves, match) {
-        console.log(Sermat.ser(moves));
-      });
-      match.events.on('next', function (game, next, match) {
-        var terrain=  next.concreteGame.terrain;
-        window.RENDERER.render(next.concreteGame);
-      });
-      match.run().then(function (m) {
-        console.log("randomAbstractedGameDiscrete");
-        console.log(m.result());
-      });
-    },
-=======
 				new ludorum.players.MonteCarloPlayer({ simulationCount: 10, timeCap: Infinity }),
 				new ludorum.players.RandomPlayer(),
 			],
@@ -1688,7 +1556,6 @@ exports.test = {
 			console.log(m.result());
 		});
 	},
->>>>>>> Strategic
 
 	//le paso los players, en caso de que no se pase, ahi si son aleatorios
 	testGame: function testGame(player1, player2) { //FIXME window
@@ -2140,11 +2007,7 @@ var GrimFuture = exports.GrimFuture = (function () {
 	return GrimFuture;
 })();
 
-<<<<<<< HEAD
 
-
-=======
->>>>>>> Strategic
 function playerRule(priority, fun) {
  fun.priority = priority;
  return fun;
@@ -2336,18 +2199,18 @@ var DynamicScriptingPlayer = exports.DynamicScriptingPlayer = declare(ludorum.Pl
 adjustWeights: function adjustWeights(game, player, roundActions, lastRoundGame) {
   var rules = this.rules;
 
-  for (reg=0;reg<rules.length;reg++){
-    if(rules[reg][1] < 0){
-      //console.log("rules[reg][1]<0");
-      //console.log(rules[reg][0].name);
-      rules[reg][1] = rules[reg][1]*(-1);
-    }
-    if(isNaN(rules[reg][1])){
-      //console.log("isNaN(rules[reg][1])");
-      //console.log(rules[reg][0].name);
-      raiseIf(isNaN(rules[reg][1]), 'rules[reg][1]');
-    }
-  }
+  // for (reg=0;reg<rules.length;reg++){
+  //   if(rules[reg][1] < 0){
+  //     //console.log("rules[reg][1]<0");
+  //     //console.log(rules[reg][0].name);
+  //     rules[reg][1] = rules[reg][1]*(-1);
+  //   }
+  //   if(isNaN(rules[reg][1])){
+  //     //console.log("isNaN(rules[reg][1])");
+  //     //console.log(rules[reg][0].name);
+  //     raiseIf(isNaN(rules[reg][1]), 'rules[reg][1]');
+  //   }
+  // }
 
   var reglasAplicadas = [];
   roundActions.forEach(function (ra){
@@ -3309,7 +3172,7 @@ inicial en el juego, luego de un ataque melee realizado por la assaulter a la ta
   },
 
  // ## Rules /////////////////////////////////////////////////////////////////
-
+//80
 //-------------------------priority 12 ex16-----------------------------------------
 /* si es la ronda final y voy perdiendo, y paso a perder si matan a unitX,
 si pueden matar a unitX y van a herirla, si unitX va a herir a unitY2,
@@ -3602,7 +3465,7 @@ rule_10B: playerRule(10, function rule_10B(game, player){
   }
  return null;
 }),
-
+//70
 
 //-------------------------priority 9 ex11-----------------------------------------
 /*si ronda = 2 y this.easiestToKill(enemyUnits,unitY) y
@@ -3892,6 +3755,7 @@ rule_7E: playerRule(7, function rule_7E(game, player){
   }
  return null;
 }),
+//60
 /*si ronda = 3 y this.canKill(game,unitY,unitX) y this.willWoundShooting(game,unitY,unitX) y
 !this.willWoundShooting(game,unitX,unitY2) y unitX.cost()<unitX2.cost()
 y !this.canAssist(game,player,unitX,unitX2) y
@@ -4127,7 +3991,7 @@ rule_5G: playerRule(5, function rule_5G(game, player){
  return null;
 }),
 
-
+//50
 
 
  //-------------------------priority 4-----------------------------------------
@@ -4330,6 +4194,7 @@ disparar a la mas facil de matar*/
      }
     return null;
    }),
+   //40
 /*en la ronda 3, si hay una unidad aliada que cueste mas que unitX y puede asistirla,
    y no pueden matar a unitX, entonces asistir a la aliada*/
    rule_3F: playerRule(3, function rule_F(game, player){
@@ -4529,6 +4394,7 @@ rule_3O: playerRule(3, function rule_3O(game, player){
   }
  return null;
 }),
+//30
 rule_3P: playerRule(3, function rule_3P(game, player){
   if (game.round === 2){
     var possibleUnits = this.playerPossibleUnits;
@@ -4730,6 +4596,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
+ //20
  // si es la ronda 0, y la unidad es heavySupport, asistir a lo que pueda asistir
  rule_2F: playerRule(2, function rule_2F(game, player){
    if (game.round === 0){
@@ -4940,6 +4807,7 @@ rule_3T: playerRule(3, function rule_3T(game, player){
    }
    return null;
  }),
+ //10
  // si es la ronda 2, y la unidad es troop, asistir a lo que pueda asistir
  rule_2P: playerRule(2, function rule_2P(game, player){
    if (game.round === 2){
@@ -9816,7 +9684,6 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 		// First activate the abstract action's unit.
 		g = g.next(obj(activePlayer, new ActivateAction(this.unitId)), null, update);
-<<<<<<< HEAD
 		var actions = g.moves()[activePlayer],
 			canShoot = g.terrain.canShoot(attacker, target),
 			shots = this.getShots(g, actions);
@@ -9838,13 +9705,6 @@ var StrategicAttackAction = exports.StrategicAttackAction = declare(GameAction, 
 		}
 		raiseIf(!(g instanceof Wargame), "Executing action ", this,
 			" did not yield a Wargame instance!");
-=======
-
-		
-		g = this.executeMovement(g, posibleActions, update);
-
-		raiseIf(!(g instanceof Wargame), "Executing action ", this, " did not yield a Wargame instance!");
->>>>>>> Strategic
 		abstractedGame.concreteGame = g;
 		return abstractedGame;
 	},
@@ -9924,13 +9784,8 @@ var AbstractedWargame = exports.AbstractedWargame = declare(ludorum.Game, {
 		return nextGame;
 	},
 
-<<<<<<< HEAD
 	clone: function clone() { 
 		return new this.constructor(this.concreteGame.clone()); 
-=======
-	clone: function clone() {
-		return new this.constructor(this.concreteGame.clone());
->>>>>>> Strategic
 	},
 
 	'static __SERMAT__': {
