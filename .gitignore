@@ -1,6 +1,7 @@
 # Repo files
 .svn/
 .git/
+#.vscode/
 
 # Dependencies
 node_modules/
